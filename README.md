@@ -53,18 +53,13 @@ The system builds a **progressive curation pipeline** that:
 
 ```
 .
-├── trace_inspector/      # UI for exploring traces and narratives
-├── tracing/              # Core pipeline logic (trace construction, drift)
-├── ui/                   # Frontend components (dashboard, authoring)
+├── code/                 # Code repository for the Django app
 ├── docs/                 # Technical pipeline documentation (01–12)
 ├── validation/           # Evaluation scripts and annotation datasets
 │   ├── p2p_annotations_*.json
 │   ├── p2p_chart_trace_validation.json
 │   └── run_validations.py
-├── manage.py             # Django entry point
-├── requirements.txt      # Dependencies
-├── db.sqlite3            # Local database (corpus + traces)
-└── .env                  # Environment variables
+└── db.sqlite3            # Local database (corpus + traces)
 ```
 
 ---
