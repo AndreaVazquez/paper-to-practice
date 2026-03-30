@@ -187,7 +187,6 @@ Includes:
 ## License
 
 CC BY 4.0 (for generated OER content)
-Code license: TBD
 
 ---
 
