@@ -44,6 +44,7 @@ from django.views.decorators.http import require_GET, require_POST
 from academic.models import PaperFigure
 from core.config import get_role_model
 from core.llm_client import call_llm
+from core.taxonomy import resolve_vis_type, vis_type_to_slug
 from repository.models import RepoArtifact
 from tracing.models import DriftAnnotation, Narrative, NarrativeQuery, Trace
 from tracing.publisher import publish as do_publish
@@ -106,6 +107,13 @@ PRESET_CHARTS = [
 
 def _new_uuid() -> str:
     return str(uuid.uuid4())
+
+
+def _resolve_vis_type_or_404(vis_type: str) -> str:
+    resolved = resolve_vis_type(unquote(vis_type))
+    if resolved is None:
+        raise Http404(f"No vis_type found for '{vis_type}'")
+    return resolved
 
 
 def _generate_chart_block(prompt: str, vis_type: str) -> dict:
@@ -796,7 +804,7 @@ def gallery(request):
 
 
 def detail(request, vis_type: str, narrative_id: int | None = None):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
 
     if narrative_id is not None:
         # Specific narrative requested by id
@@ -811,11 +819,11 @@ def detail(request, vis_type: str, narrative_id: int | None = None):
             .first()
         )
         if narrative is None:
-            return redirect("narratives:author", vis_type=vis_type)
+            return redirect("narratives:author", vis_type=vis_type_to_slug(vis_type))
 
     html_path = Path(settings.MEDIA_ROOT) / narrative.html_path
     if not html_path.exists():
-        return redirect("narratives:author", vis_type=vis_type)
+        return redirect("narratives:author", vis_type=vis_type_to_slug(vis_type))
 
     # Increment view_count via a separate atomic update
     from django.db.models import F
@@ -825,7 +833,7 @@ def detail(request, vis_type: str, narrative_id: int | None = None):
 
 
 def author(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
 
     # ?new=1 forces a blank slate regardless of existing narratives.
     # Used by the "New Narrative" button in the gallery.
@@ -922,7 +930,7 @@ def check_similar(request, vis_type: str):
     3. Score similarity (lightweight text overlap).
     4. Return top matches.
     """
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -981,7 +989,7 @@ def generate(request, vis_type: str):
     4. Assemble figures + notebooks blocks
     5. Save Narrative (upsert by vis_type)
     """
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1176,7 +1184,7 @@ def generate(request, vis_type: str):
 @csrf_exempt
 @require_POST
 def add_chart(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1204,7 +1212,7 @@ def add_chart(request, vis_type: str):
 @csrf_exempt
 @require_POST
 def delete_block(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1225,7 +1233,7 @@ def delete_block(request, vis_type: str):
 @csrf_exempt
 @require_POST
 def reorder(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1250,7 +1258,7 @@ def reorder(request, vis_type: str):
 @csrf_exempt
 @require_POST
 def regen_chart(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1286,7 +1294,7 @@ def regen_chart(request, vis_type: str):
 @csrf_exempt
 @require_POST
 def publish(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1319,14 +1327,14 @@ def publish(request, vis_type: str):
     return JsonResponse({
         "ok": True,
         "narrative_id": narrative.pk,
-        "redirect": f"/narratives/{vis_type}/{narrative.pk}/",
+        "redirect": f"/narratives/{vis_type_to_slug(vis_type)}/{narrative.pk}/",
     })
 
 
 @csrf_exempt
 @require_POST
 def increment_view(request, vis_type: str):
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     from django.db.models import F
     try:
         body = json.loads(request.body)
@@ -1348,7 +1356,7 @@ def reset_draft(request, vis_type: str):
     Also deletes any rendered files (HTML, JSON-LD) from disk.
     Returns {"ok": True}.
     """
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1403,7 +1411,7 @@ def figures_pool(request, vis_type: str):
         ]
       }
     """
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     pool = _select_figures(vis_type, breadth_target=20, depth_cap=6, total_target=80)
     return JsonResponse({
         "figures": [
@@ -1434,9 +1442,12 @@ def update_figures(request, vis_type: str):
     both the block list and source_figures on the Narrative row so the
     gallery card count and JSON-LD sidecar stay consistent.
 
+    Traced figures are filtered to the user-selected set for this narrative
+    version; the underlying Trace rows remain untouched.
+
     Returns: { "block": <updated figures block dict> }
     """
-    vis_type = unquote(vis_type)
+    vis_type = _resolve_vis_type_or_404(vis_type)
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -1462,7 +1473,15 @@ def update_figures(request, vis_type: str):
         _new_uuid(),
     )
 
-    new_block = _build_figures_block(ordered_figs, traced_figures=_get_traced_figures(vis_type))
+    traced_selected_ids = set(
+        Trace.objects.filter(
+            figure_id__in=[f.id for f in ordered_figs],
+            annotation_status="annotated",
+        ).values_list("figure_id", flat=True).distinct()
+    )
+    traced_selected_figs = [f for f in ordered_figs if f.id in traced_selected_ids]
+
+    new_block = _build_figures_block(ordered_figs, traced_figures=traced_selected_figs)
     new_block["uuid"] = existing_uuid  # stable UUID — block doesn't jump in the list
 
     # Replace the figures block in place, or append if somehow absent

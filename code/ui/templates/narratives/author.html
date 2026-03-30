@@ -564,7 +564,7 @@
           <span class="status-chip">{{ draft_count }} version{{ draft_count|pluralize }}</span>
           {% if narrative and narrative.status == "published" %}
           <span class="status-chip">
-            <a href="/narratives/{{ vis_type|urlencode }}/" style="color:var(--academic)">View live ↗</a>
+            <a href="/narratives/{{ vis_type|vis_slug }}/" style="color:var(--academic)">View live ↗</a>
           </span>
           {% endif %}
         </div>
@@ -582,7 +582,7 @@
           RESET ✕
         </button>
         {% if narrative.status == "published" %}
-        <a href="/narratives/{{ vis_type|urlencode }}/"
+        <a href="/narratives/{{ vis_type|vis_slug }}/"
            class="btn btn-outline-secondary btn-sm" style="font-size:12px;letter-spacing:1px">
           VIEW ↗
         </a>
@@ -829,6 +829,18 @@ function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function visTypeToSlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function narrativeBasePath(visType) {
+  return `/narratives/${visTypeToSlug(visType)}`;
+}
+
 function pluralize(count, singular, plural) {
   return count === 1 ? singular : plural;
 }
@@ -836,7 +848,7 @@ function pluralize(count, singular, plural) {
 function navigateToVisType(visType) {
   if (!visType) return;
   const qs = IS_NEW ? '?new=1' : '';
-  window.location = `/narratives/${encodeURIComponent(visType)}/author/${qs}`;
+  window.location = `${narrativeBasePath(visType)}/author/${qs}`;
 }
 
 function getExactVisTypeMatch(value) {
@@ -1043,7 +1055,7 @@ async function checkSimilar() {
   btn.innerHTML = '<span class="spinner"></span> Checking…';
 
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/check-similar/`, {
+    const data = await api(`${narrativeBasePath(VT)}/check-similar/`, {
       query_text: query || '(no focus prompt)',
     });
 
@@ -1053,7 +1065,7 @@ async function checkSimilar() {
         ${data.total_prior_queries} prior queries — similar found:</div>`;
       data.matches.forEach(m => {
         const link = m.narrative_id
-          ? `<a href="/narratives/${encodeURIComponent(m.narrative_vis_type)}/" style="color:var(--academic)">view narrative ↗</a> &nbsp;`
+          ? `<a href="${narrativeBasePath(m.narrative_vis_type)}/" style="color:var(--academic)">view narrative ↗</a> &nbsp;`
           : '';
         html += `<div class="similar-result">
           "${m.query_text}"
@@ -1101,7 +1113,7 @@ async function generate() {
   const extras     = extraInput && extraInput.value.trim() ? [extraInput.value.trim()] : [];
 
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/generate/`, {
+    const data = await api(`${narrativeBasePath(VT)}/generate/`, {
       query_text: queryText,
       enabled_presets: enabledPresets,
       extra_chart_prompts: extras,
@@ -1167,7 +1179,7 @@ async function addChart() {
 
   showStatus('<span class="spinner"></span> Generating chart…', 'info');
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/add-chart/`, { prompt });
+    const data = await api(`${narrativeBasePath(VT)}/add-chart/`, { prompt });
     if (data.error) { showStatus('Error: ' + data.error, 'error'); return; }
     blocks = insertBeforeEvidence(blocks, data.block);
     renderBlocks();
@@ -1188,7 +1200,7 @@ function insertBeforeEvidence(blocks, block) {
 // ── Delete block ───────────────────────────────────────────────────────────────
 async function deleteBlock(uuid) {
   if (!confirm('Remove this block?')) return;
-  await api(`/narratives/${encodeURIComponent(VT)}/delete-block/`, { uuid });
+  await api(`${narrativeBasePath(VT)}/delete-block/`, { uuid });
   blocks = blocks.filter(b => b.uuid !== uuid);
   renderBlocks();
   updateBlockCount();
@@ -1200,7 +1212,7 @@ async function regenChart(uuid) {
   const newPrompt = promptEl ? promptEl.value.trim() : '';
   showStatus('<span class="spinner"></span> Regenerating chart…', 'info');
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/regen-chart/`, {
+    const data = await api(`${narrativeBasePath(VT)}/regen-chart/`, {
       uuid, new_prompt: newPrompt,
     });
     if (data.error) { showStatus('Error: ' + data.error, 'error'); return; }
@@ -1219,7 +1231,7 @@ async function publishNarrative() {
   showStatus('<span class="spinner"></span> Publishing…', 'info');
   saveTextEdits();
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/publish/`, {});
+    const data = await api(`${narrativeBasePath(VT)}/publish/`, {});
     if (data.error) { showStatus('Publish error: ' + data.error, 'error'); return; }
     updateHeroStatus('published', data.redirect);
     showStatus(`Published. <a href="${data.redirect}" style="color:var(--bridge)" target="_blank">View live narrative ↗</a> — you can generate a new version at any time; it will not overwrite this one.`, 'ok');
@@ -1236,7 +1248,7 @@ function saveTextEdits() {
     if (block) block.content = ta.value;
   });
   // Persist to server
-  api(`/narratives/${encodeURIComponent(VT)}/reorder/`, {
+  api(`${narrativeBasePath(VT)}/reorder/`, {
     order: blocks.map(b => b.uuid),
   });
 }
@@ -1246,11 +1258,11 @@ async function resetDraft() {
   if (!confirm('Delete this narrative? This removes it from the gallery. Other narratives for this type are not affected. Cannot be undone.')) return;
   showStatus('<span class="spinner"></span> Resetting…', 'info');
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/reset-draft/`, {});
+    const data = await api(`${narrativeBasePath(VT)}/reset-draft/`, {});
     if (data.error) { showStatus('Reset error: ' + data.error, 'error'); return; }
     // Redirect to a clean URL — no ?narrative_id= — so the next generate
     // creates a fresh row rather than the server re-loading the deleted one.
-    window.location.href = '/narratives/' + encodeURIComponent(VT) + '/author/';
+    window.location.href = `${narrativeBasePath(VT)}/author/`;
   } catch (err) {
     showStatus('Reset failed: ' + err, 'error');
   }
@@ -1267,7 +1279,7 @@ function initSortable() {
       const items = list.querySelectorAll('.block-card[data-uuid]');
       const newOrder = Array.from(items).map(el => el.dataset.uuid);
       blocks = newOrder.map(uid => blocks.find(b => b.uuid === uid)).filter(Boolean);
-      await api(`/narratives/${encodeURIComponent(VT)}/reorder/`, { order: newOrder });
+      await api(`${narrativeBasePath(VT)}/reorder/`, { order: newOrder });
     },
   });
 }
@@ -1707,7 +1719,7 @@ async function openFigurePicker(blockUuid) {
     if (_figPoolLoading) return; // concurrent open — wait for first
     _figPoolLoading = true;
     try {
-      const res = await fetch(`/narratives/${encodeURIComponent(VT)}/figures-pool/`);
+      const res = await fetch(`${narrativeBasePath(VT)}/figures-pool/`);
       const data = await res.json();
       _figPoolCache = data.figures || [];
     } catch (err) {
@@ -1837,7 +1849,7 @@ async function applyFigureSelection(blockUuid) {
   if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = '…'; }
 
   try {
-    const data = await api(`/narratives/${encodeURIComponent(VT)}/update-figures/`, {
+    const data = await api(`${narrativeBasePath(VT)}/update-figures/`, {
       figure_ids: selectedIds,
     });
     if (data.error) {

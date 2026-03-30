@@ -332,7 +332,7 @@
       <article class="narrative-gallery-card">
         <div class="gallery-card-body">
           <div class="gallery-card-top">
-            <a href="/narratives/{{ n.vis_type|urlencode }}/" class="gallery-type">
+            <a href="/narratives/{{ n.vis_type|vis_slug }}/" class="gallery-type">
               {{ n.vis_type }}
             </a>
             <span class="gallery-status">Published</span>
@@ -365,11 +365,11 @@
               {% if n.model_used %} · {{ n.model_used }}{% endif %}
             </div>
             <div class="gallery-actions">
-              <a href="/narratives/{{ n.vis_type|urlencode }}/{{ n.pk }}/"
+              <a href="/narratives/{{ n.vis_type|vis_slug }}/{{ n.pk }}/"
                  class="btn btn-sm btn-soft btn-soft-read">Read</a>
-              <a href="/narratives/{{ n.vis_type|urlencode }}/author/?narrative_id={{ n.pk }}"
+              <a href="/narratives/{{ n.vis_type|vis_slug }}/author/?narrative_id={{ n.pk }}"
                  class="btn btn-sm btn-soft btn-soft-edit">Edit</a>
-              <button onclick="deleteNarrative('{{ n.vis_type|urlencode }}', {{ n.pk }}, this)"
+              <button onclick="deleteNarrative('{{ n.vis_type|vis_slug }}', {{ n.pk }}, this)"
                       class="btn btn-sm btn-soft btn-soft-delete"
                       title="Delete this narrative permanently">×</button>
             </div>
@@ -389,7 +389,7 @@
     </div>
     <div class="d-flex flex-wrap gap-2 justify-content-center">
       {% for t in "Bar,Scatter,Heatmap,Line,Node-Link"|split:"," %}
-      <a href="/narratives/{{ t }}/author/"
+      <a href="/narratives/{{ t|vis_slug }}/author/"
          class="btn btn-outline-secondary btn-sm" style="font-size:12px;letter-spacing:1.5px">
         {{ t }}
       </a>

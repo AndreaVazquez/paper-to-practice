@@ -1,4 +1,5 @@
 {% extends "ui/base.html" %}
+{% load ui_extras %}
 {% block title %}{{ vis_type }} — Explore{% endblock %}
 
 {% block extra_head %}
@@ -623,7 +624,7 @@
             <div class="section-label">Narrative</div>
             <h2 class="explore-title-sm">Design anchor narrative</h2>
           </div>
-          <a href="/narratives/{{ vis_type|urlencode }}/author/" class="explore-chip">
+          <a href="/narratives/{{ vis_type|vis_slug }}/author/" class="explore-chip">
             {% if narrative %}Edit narrative{% else %}Create narrative{% endif %}
           </a>
         </div>
@@ -632,13 +633,13 @@
           <p style="font-size:.82rem;color:var(--text);margin-bottom:0">{{ narrative.get_text_excerpt }}</p>
           <div class="narrative-meta">
             {{ narrative.model_used }} · {{ narrative.generated_at|date:"Y-m-d" }} · {{ narrative.status }}
-            · <a href="/narratives/{{ vis_type|urlencode }}/" style="color:var(--academic)">Read full narrative ↗</a>
+            · <a href="/narratives/{{ vis_type|vis_slug }}/" style="color:var(--academic)">Read full narrative ↗</a>
           </div>
         </div>
         {% else %}
         <div class="summary-note">
           No narrative for {{ vis_type }} yet.
-          <a href="/narratives/{{ vis_type|urlencode }}/author/" style="color:var(--bridge)">Author one now ↗</a>
+          <a href="/narratives/{{ vis_type|vis_slug }}/author/" style="color:var(--bridge)">Author one now ↗</a>
         </div>
         {% endif %}
       </div>

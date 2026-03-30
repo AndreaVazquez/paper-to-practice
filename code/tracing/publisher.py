@@ -15,11 +15,11 @@ import base64
 import json
 import logging
 import os
-import re
 from datetime import date
 from pathlib import Path
 
 from django.conf import settings
+from core.taxonomy import vis_type_to_slug
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def _slug(vis_type: str) -> str:
     """Convert vis_type to a filesystem-safe slug."""
-    return re.sub(r"[^a-z0-9]+", "-", vis_type.lower()).strip("-")
+    return vis_type_to_slug(vis_type)
 
 
 def _image_to_data_uri(path: str) -> str:

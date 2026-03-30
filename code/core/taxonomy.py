@@ -4,6 +4,8 @@ VisImages taxonomy — Deng et al. (2022).
 This is the controlled vocabulary used throughout the system for vis_type fields.
 """
 
+import re
+
 # Top-level categories (used for display and grouping)
 TOP_LEVEL_CATEGORIES = [
     "Bar",
@@ -96,6 +98,14 @@ for _category, _subtypes in TAXONOMY.items():
         SUBTYPE_TO_CATEGORY[_subtype] = _category
 
 
+def vis_type_to_slug(vis_type: str) -> str:
+    """Convert a vis_type label to the canonical narrative URL slug."""
+    return re.sub(r"[^a-z0-9]+", "-", vis_type.lower()).strip("-")
+
+
+SLUG_TO_VIS_TYPE: dict[str, str] = {vis_type_to_slug(v): v for v in VIS_TYPES}
+
+
 # Mapping from VisImages annotation.json type strings → our taxonomy subtypes.
 # None means "not a visualization" — these records get is_visualization=False.
 VISIMAGES_TYPE_MAP: dict[str, str | None] = {
@@ -135,6 +145,16 @@ VISIMAGES_TYPE_MAP: dict[str, str | None] = {
 def get_category(vis_type: str) -> str | None:
     """Return the parent category for a vis_type string, or None if not found."""
     return SUBTYPE_TO_CATEGORY.get(vis_type)
+
+
+def resolve_vis_type(value: str) -> str | None:
+    """Resolve either an exact vis_type label or its slug to the canonical label."""
+    candidate = str(value or "").strip()
+    if not candidate:
+        return None
+    if candidate in SUBTYPE_TO_CATEGORY:
+        return candidate
+    return SLUG_TO_VIS_TYPE.get(vis_type_to_slug(candidate))
 
 
 def types_in_same_category(type_a: str, type_b: str) -> bool:
