@@ -1,0 +1,1426 @@
+{% extends "ui/base.html" %}
+{% load ui_extras %}
+{% block title %}Dashboard — From Paper to Practice{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dashboard-shell {
+    position: relative;
+    overflow: hidden;
+    padding-bottom: 28px;
+  }
+
+  .dashboard-shell::before {
+    content: "";
+    position: absolute;
+    inset: -10% -5% auto;
+    height: 540px;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(3, 105, 161, 0.18), transparent 30%),
+      radial-gradient(circle at 82% 14%, rgba(15, 118, 110, 0.14), transparent 28%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(240, 244, 248, 0.25));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dashboard-shell::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 72%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dashboard-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-card {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.86)),
+      linear-gradient(135deg, rgba(3, 105, 161, 0.06), rgba(15, 118, 110, 0.04));
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.7rem, 2.6vw, 2.5rem);
+    line-height: 0.98;
+    color: var(--heading);
+    margin: 0;
+    max-width: 10ch;
+  }
+
+  .hero-copy {
+    max-width: 48ch;
+    color: var(--text-dim);
+    margin-top: 12px;
+    margin-bottom: 0;
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+
+  .headline-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 0;
+  }
+
+  .headline-pill {
+    border-radius: 12px;
+    padding: 11px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .headline-pill.academic {
+    box-shadow: inset 0 3px 0 rgba(3, 105, 161, 0.9);
+  }
+
+  .headline-pill.repo {
+    box-shadow: inset 0 3px 0 rgba(124, 58, 237, 0.9);
+  }
+
+  .headline-pill.bridge {
+    box-shadow: inset 0 3px 0 rgba(15, 118, 110, 0.9);
+  }
+
+  .headline-pill.warning {
+    box-shadow: inset 0 3px 0 rgba(217, 119, 6, 0.9);
+  }
+
+  .headline-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .headline-type {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.02rem;
+    color: var(--heading);
+    margin-bottom: 2px;
+  }
+
+  .headline-value {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .stat-card-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    height: 100%;
+  }
+
+  .stat-card-hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+  }
+
+  .stat-card-hero.academic::before {
+    background: var(--academic);
+  }
+
+  .stat-card-hero.repo::before {
+    background: var(--repo);
+  }
+
+  .stat-card-hero.bridge::before {
+    background: var(--bridge);
+  }
+
+  .stat-card-hero.neutral::before {
+    background: #cbd5e1;
+  }
+
+  .stat-note {
+    font-size: 0.73rem;
+    line-height: 1.45;
+    color: var(--muted);
+    margin-top: 8px;
+    max-width: 26ch;
+  }
+
+  .panel-card {
+    border-radius: 18px;
+    padding: 18px 18px 10px;
+    min-height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+  }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin: 0 0 6px;
+  }
+
+  .panel-copy {
+    color: var(--text-dim);
+    font-size: 0.83rem;
+    line-height: 1.55;
+    max-width: 58ch;
+  }
+
+  .panel-chip {
+    border-radius: 999px;
+    padding: 7px 11px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    white-space: nowrap;
+  }
+
+  .viz-frame {
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    padding: 10px;
+  }
+
+  .bridge-legend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .bridge-legend-scale {
+    font-size: 0.72rem;
+    letter-spacing: 0.4px;
+    text-transform: none;
+    color: var(--text-dim);
+  }
+
+  .bridge-legend-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .bridge-legend-bar {
+    width: 150px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+  }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 12px;
+  }
+
+  .mini-chart {
+    min-height: 300px;
+  }
+
+  .spotlight-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .spotlight-card {
+    display: block;
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+    color: inherit;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .spotlight-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(3, 105, 161, 0.35);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    text-decoration: none;
+  }
+
+  .spotlight-type {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.18rem;
+    color: var(--heading);
+    margin-bottom: 10px;
+    line-height: 1.02;
+  }
+
+  .spotlight-metric {
+    font-size: 0.76rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .invalid-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .invalid-card {
+    display: block;
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+    color: inherit;
+    box-shadow: inset 0 3px 0 rgba(217, 119, 6, 0.85);
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .invalid-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(217, 119, 6, 0.35);
+    box-shadow: inset 0 3px 0 rgba(217, 119, 6, 0.92), 0 14px 30px rgba(15, 23, 42, 0.08);
+    text-decoration: none;
+  }
+
+  .invalid-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .invalid-type {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.08rem;
+    color: var(--heading);
+    line-height: 1.02;
+    margin-bottom: 6px;
+  }
+
+  .invalid-count {
+    font-size: 0.76rem;
+    line-height: 1.4;
+    color: var(--text-dim);
+  }
+
+  .invalid-chip {
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(217, 119, 6, 0.22);
+    color: #9a3412;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .invalid-label {
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .invalid-summary {
+    font-size: 0.79rem;
+    line-height: 1.58;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .invalid-example {
+    font-size: 0.74rem;
+    line-height: 1.55;
+    color: #7c2d12;
+  }
+
+  .encoding-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .encoding-theme-card {
+    display: block;
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+    color: inherit;
+  }
+
+  .encoding-theme-card:hover {
+    text-decoration: none;
+    border-color: rgba(3, 105, 161, 0.35);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .encoding-theme-topline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .encoding-theme-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    line-height: 1.05;
+    color: var(--heading);
+  }
+
+  .encoding-theme-count {
+    font-size: 0.76rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .encoding-theme-summary {
+    font-size: 0.78rem;
+    line-height: 1.56;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .encoding-theme-example {
+    font-size: 0.73rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .type-hotspot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .justification-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .justification-mini {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background:
+      linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.92));
+    padding: 10px;
+  }
+
+  .justification-mini-title {
+    font-size: 0.76rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  @media (max-width: 1199px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .headline-strip,
+    .spotlight-grid,
+    .invalid-grid,
+    .encoding-theme-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .type-hotspot-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .justification-chart-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .mini-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .hero-card {
+      padding: 16px;
+    }
+
+    .headline-strip,
+    .spotlight-grid,
+    .invalid-grid,
+    .encoding-theme-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .type-hotspot-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .justification-chart-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+  <section class="hero-card mb-4">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Corpus Overview</div>
+        <h1 class="hero-title">From papers to practice.</h1>
+        <p class="hero-copy">
+          This view tracks which visualization forms dominate the literature, which reappear in repositories, and where design drift is strongest.
+        </p>
+      </div>
+      <div class="headline-strip">
+        {% for insight in headline_insights %}
+        <div class="headline-pill {{ insight.tone }}">
+          <div class="headline-label">{{ insight.label }}</div>
+          <div class="headline-type">{{ insight.vis_type }}</div>
+          <div class="headline-value">
+            {% if insight.label == "Highest drift" %}
+              avg severity {{ insight.value }}
+            {% elif insight.label == "Review yield" %}
+              {{ insight.value }}
+            {% else %}
+              {{ insight.value }} instances
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card stat-card stat-card-hero academic">
+        <div class="stat-label">Papers</div>
+        <div class="stat-value academic">{{ total_papers }}</div>
+        <div class="stat-note">IEEE VIS metadata entries across the archive.</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card stat-card stat-card-hero academic">
+        <div class="stat-label">Figures (vis)</div>
+        <div class="stat-value academic">{{ total_figures }}</div>
+        <div class="stat-note">classified visual figures extracted from papers.</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card stat-card stat-card-hero repo">
+        <div class="stat-label">Repositories</div>
+        <div class="stat-value repo">{{ total_notebooks }}</div>
+        <div class="stat-note">Kaggle, GitHub, and ObservableHQ sources.</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card stat-card stat-card-hero bridge">
+        <div class="stat-label">Confirmed Traces</div>
+        <div class="stat-value bridge">{{ total_traces }}</div>
+        <div class="stat-note">candidate matches that remained valid after review; {{ total_invalid_traces }} reviewed candidates were rejected as invalid.</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card stat-card stat-card-hero bridge">
+        <div class="stat-label">Reviewed Traces</div>
+        <div class="stat-value bridge">{{ reviewed_trace_total }}</div>
+        <div class="stat-note">{{ total_traces }} confirmed valid · {{ total_invalid_traces }} rejected as invalid.</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card stat-card stat-card-hero neutral">
+        <div class="stat-label">Shared Types</div>
+        <div class="stat-value neutral">{{ shared_vis_types }}</div>
+        <div class="stat-note">forms seen on both the paper and repository sides.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card panel-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Corpus Contrast</div>
+            <h2 class="panel-title">Where the corpora align, and where they diverge</h2>
+            <div class="panel-copy">
+              Academic counts extend left and repository counts extend right. Click any type to jump into the detailed explorer for that visualization family.
+            </div>
+          </div>
+          <div class="panel-chip">Top 16 shared / dominant types</div>
+        </div>
+        <div class="viz-frame">
+          <div id="comparison-chart" style="height: 520px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Temporal Growth</div>
+            <h2 class="panel-title">Corpus expansion over time</h2>
+            <div class="panel-copy">
+              Paper volume and classified visualization figures do not grow at the same pace. The split makes visible how annotation coverage and publication volume evolved across the archive.
+            </div>
+          </div>
+          <div class="panel-chip">1995–2026</div>
+        </div>
+        <div class="viz-frame">
+          <div id="growth-chart" style="height: 360px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Corpus Mix</div>
+            <h2 class="panel-title">Track and platform composition</h2>
+            <div class="panel-copy">
+              A simple count view works better here: the academic corpus is dominated by unknown track labels, while repository sources split across three platforms.
+            </div>
+          </div>
+          <div class="panel-chip">Counts by source</div>
+        </div>
+        <div class="mini-grid">
+          <div class="viz-frame">
+            <div id="track-chart" class="mini-chart"></div>
+          </div>
+          <div class="viz-frame">
+            <div id="platform-chart" class="mini-chart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Bridge Landscape</div>
+            <h2 class="panel-title">Which types actually form the bridge</h2>
+            <div class="panel-copy">
+              Stacked bars show reviewed candidate volume split into confirmed valid and invalid. The confirmed segment keeps the average drift color encoding, while the muted segment shows how many reviewed candidates were rejected.
+            </div>
+          </div>
+          <div class="panel-chip">Confirmed vs invalid split</div>
+        </div>
+        <div class="viz-frame">
+          <div id="bridge-chart" style="height: 420px;"></div>
+          <div class="bridge-legend">
+            <span class="bridge-legend-scale">Avg drift uses a 0-6 severity scale.</span>
+            <div class="bridge-legend-right">
+              <span>Avg drift (0-6)</span>
+              <span>Low</span>
+              <span class="bridge-legend-bar" aria-hidden="true"></span>
+              <span>High</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Drift Profile</div>
+            <h2 class="panel-title">Major drift dominates every dimension</h2>
+            <div class="panel-copy">
+              The stacked profile compresses the annotation layer into three dimensions so the strongest sources of transformation are immediately visible.
+            </div>
+          </div>
+          <div class="panel-chip">{{ total_drift_annotations }} annotated traces</div>
+        </div>
+        <div class="viz-frame">
+          <div id="drift-chart" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Drift Justifications</div>
+            <h2 class="panel-title">How the qualitative rationale differs by dimension</h2>
+            <div class="panel-copy">
+              Each mini-chart uses the top themes for one dimension only. That keeps encoding, interaction, and task on their own vocabularies instead of forcing unlike themes onto a shared axis.
+            </div>
+          </div>
+          <a class="panel-chip" href="/drift-justifications/">{{ drift_justification_total }} notes</a>
+        </div>
+        <div class="justification-chart-grid">
+          <div class="justification-mini">
+            <div class="justification-mini-title">Encoding</div>
+            <div id="drift-justification-encoding" style="height: 280px;"></div>
+          </div>
+          <div class="justification-mini">
+            <div class="justification-mini-title">Interaction</div>
+            <div id="drift-justification-interaction" style="height: 280px;"></div>
+          </div>
+          <div class="justification-mini">
+            <div class="justification-mini-title">Task</div>
+            <div id="drift-justification-task" style="height: 280px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card panel-card h-100">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Dimension Readout</div>
+            <h2 class="panel-title">What dominates each justification layer</h2>
+            <div class="panel-copy">
+              Each dimension surfaces a different kind of drift rationale, so the right entry point depends on whether you want changed form, lost interaction, or shifted task.
+            </div>
+          </div>
+          <div class="panel-chip">One card per dimension</div>
+        </div>
+        <div class="type-hotspot-grid">
+          {% for row in drift_dimension_spotlights %}
+          <a class="spotlight-card" href="/drift-justifications/?dimension={{ row.dimension|urlencode }}">
+            <div class="spotlight-type">{{ row.dimension_label }}</div>
+            <div class="spotlight-metric">{{ row.total }} notes</div>
+            {% if row.top_theme %}
+            <div class="spotlight-metric">{{ row.top_theme.label }} · {{ row.top_theme.share }}%</div>
+            <div class="spotlight-metric">{{ row.top_theme.summary }}</div>
+            {% else %}
+            <div class="spotlight-metric">No notes available yet.</div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card panel-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Theme Readout</div>
+            <h2 class="panel-title">Representative themes across the three dimensions</h2>
+            <div class="panel-copy">
+              These cards pull the leading themes from encoding, interaction, and task so you can jump straight into the raw qualitative evidence.
+            </div>
+          </div>
+          <a class="panel-chip" href="/drift-justifications/">Open full explorer</a>
+        </div>
+        <div class="encoding-theme-grid">
+          {% for row in drift_theme_spotlights %}
+          <a class="encoding-theme-card" href="/drift-justifications/?dimension={{ row.dimension|urlencode }}&theme={{ row.id|urlencode }}">
+            <div class="encoding-theme-topline">
+              <div class="encoding-theme-label">{{ row.dimension_label }} · {{ row.label }}</div>
+              <div class="encoding-theme-count">{{ row.count }} · {{ row.share }}%</div>
+            </div>
+            <div class="encoding-theme-summary">{{ row.summary }}</div>
+            {% if row.example %}
+            <div class="encoding-theme-example">Example: {{ row.example }}</div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card panel-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Invalid Trace Review</div>
+            <h2 class="panel-title">Why many candidate traces are rejected</h2>
+            <div class="panel-copy">
+              {{ total_invalid_traces }} reviewed traces were marked invalid, which is {{ invalid_trace_share }}% of all reviewed trace cases. The dominant issue is usually figure-side misclassification rather than absence of bridge potential, and Sankey is the clearest example.
+            </div>
+          </div>
+          <div class="panel-chip">{{ total_invalid_traces }} invalid of {{ reviewed_trace_total }} reviewed</div>
+        </div>
+        <div class="invalid-grid">
+          {% for row in invalid_reason_spotlights %}
+          <a class="invalid-card" href="/explore/{{ row.vis_type|urlencode }}/">
+            <div class="invalid-topline">
+              <div>
+                <div class="invalid-type">{{ row.vis_type }}</div>
+                <div class="invalid-count">{{ row.invalid_count }} invalid · {{ row.trace_count }} confirmed valid</div>
+              </div>
+              <div class="invalid-chip">{{ row.invalid_share }}% invalid</div>
+            </div>
+            <div class="invalid-label">{{ row.dominant_invalid_label }} · {{ row.dominant_invalid_share }}% of invalids</div>
+            <div class="invalid-summary">{{ row.dominant_invalid_summary }}</div>
+            {% if row.dominant_invalid_example %}
+            <div class="invalid-example">Example: {{ row.dominant_invalid_example }}</div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card panel-card">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Trace Hotspots</div>
+            <h2 class="panel-title">The types carrying most of the bridge work</h2>
+            <div class="panel-copy">
+              These families produce the densest figure-to-artifact links right now, making them the most productive entry points for qualitative inspection and narrative generation.
+            </div>
+          </div>
+          <div class="panel-chip">Top confirmed bridge types</div>
+        </div>
+        <div class="spotlight-grid">
+          {% for row in bridge_spotlights %}
+          <a class="spotlight-card" href="/explore/{{ row.vis_type|urlencode }}/">
+            <div class="spotlight-type">{{ row.vis_type }}</div>
+            <div class="spotlight-metric">{{ row.trace_count }} confirmed valid traces</div>
+            <div class="spotlight-metric">{{ row.academic_count }} academic figures · {{ row.repo_count }} repo artifacts</div>
+            <div class="spotlight-metric">
+              {% if row.average_drift %}
+                avg drift {{ row.average_drift }} / 6
+              {% else %}
+                no drift annotations yet
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const academicData = {{ academic_dist|safe }};
+const repoData = {{ repo_dist|safe }};
+const comparisonData = {{ comparison_dist|safe }};
+const yearlySeries = {{ yearly_series|safe }};
+const trackData = {{ track_dist|safe }};
+const platformData = {{ platform_dist|safe }};
+const bridgeLandscape = {{ bridge_landscape|safe }};
+const driftProfile = {{ drift_profile|safe }};
+const driftDimensionRows = {{ drift_dimension_rows|safe }};
+const driftDimensionThemeRows = {{ drift_dimension_theme_rows|safe }};
+
+function getCssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function hexToRgba(hex, alpha) {
+  const value = hex.replace('#', '');
+  const normalized = value.length === 3
+    ? value.split('').map(char => char + char).join('')
+    : value;
+  const int = Number.parseInt(normalized, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const COLORS = {
+  academic: getCssVar('--academic'),
+  academicSoft: hexToRgba(getCssVar('--academic'), 0.18),
+  academicFaint: hexToRgba(getCssVar('--academic'), 0.1),
+  repo: getCssVar('--repo'),
+  repoSoft: hexToRgba(getCssVar('--repo'), 0.18),
+  repoFaint: hexToRgba(getCssVar('--repo'), 0.1),
+  bridge: getCssVar('--bridge'),
+  bridgeSoft: hexToRgba(getCssVar('--bridge'), 0.18),
+  bridgeFaint: hexToRgba(getCssVar('--bridge'), 0.1),
+  neutral: '#94a3b8',
+  neutralSoft: 'rgba(148, 163, 184, 0.18)',
+  none: '#10b981',
+  minor: '#f59e0b',
+  major: '#ef4444',
+};
+
+function withAxisBase(axis, extra = {}) {
+  return {
+    ...axis,
+    zeroline: false,
+    gridcolor: 'rgba(226, 232, 240, 0.9)',
+    linecolor: 'rgba(148, 163, 184, 0.55)',
+    tickfont: { color: '#475569', size: 11 },
+    ...extra,
+  };
+}
+
+function plotLayout(extra = {}) {
+  const theme = getPlotlyTheme();
+  return {
+    ...theme,
+    margin: { l: 56, r: 30, t: 10, b: 44 },
+    hoverlabel: {
+      bgcolor: '#ffffff',
+      bordercolor: 'rgba(148, 163, 184, 0.35)',
+      font: { family: "'JetBrains Mono', monospace", color: '#0f172a', size: 11 },
+    },
+    xaxis: withAxisBase(theme.xaxis),
+    yaxis: withAxisBase(theme.yaxis),
+    legend: {
+      ...theme.legend,
+      orientation: 'h',
+      y: -0.14,
+      x: 0,
+    },
+    ...extra,
+  };
+}
+
+function navigateToType(visType) {
+  if (!visType) return;
+  window.location.href = `/explore/${encodeURIComponent(visType)}/`;
+}
+
+function renderComparisonChart() {
+  const rows = [...comparisonData].reverse();
+  const traceRows = rows.filter(row => row.trace_count > 0);
+  const maxCount = Math.max(...comparisonData.map(row => Math.max(row.academic_count, row.repo_count)), 1);
+  const maxTraceCount = Math.max(...traceRows.map(row => row.trace_count), 1);
+  const roundedMax = Math.ceil(maxCount / 500) * 500;
+  const tickStep = Math.max(500, Math.ceil(roundedMax / 3 / 250) * 250);
+  const tickvals = [];
+  for (let value = -roundedMax; value <= roundedMax; value += tickStep) {
+    tickvals.push(value);
+  }
+  Plotly.react(
+    'comparison-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Academic figures',
+        y: rows.map(row => row.vis_type),
+        x: rows.map(row => -row.academic_count),
+        marker: { color: COLORS.academic, opacity: 0.92, line: { width: 0 } },
+        customdata: rows.map(row => [row.vis_type, row.academic_count, row.repo_count, row.trace_count]),
+        hovertemplate:
+          '<b>%{customdata[0]}</b><br>' +
+          'Academic: %{customdata[1]}<br>' +
+          'Repository: %{customdata[2]}<br>' +
+          'Confirmed valid traces: %{customdata[3]}<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Repository artifacts',
+        y: rows.map(row => row.vis_type),
+        x: rows.map(row => row.repo_count),
+        marker: { color: COLORS.repo, opacity: 0.92, line: { width: 0 } },
+        customdata: rows.map(row => [row.vis_type, row.academic_count, row.repo_count, row.trace_count]),
+        hovertemplate:
+          '<b>%{customdata[0]}</b><br>' +
+          'Repository: %{customdata[2]}<br>' +
+          'Academic: %{customdata[1]}<br>' +
+          'Confirmed valid traces: %{customdata[3]}<extra></extra>',
+      },
+      {
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Confirmed valid traces',
+        y: traceRows.map(row => row.vis_type),
+        x: traceRows.map(() => 0),
+        marker: {
+          color: COLORS.bridge,
+          size: traceRows.map(row => row.trace_count),
+          sizemode: 'area',
+          sizeref: (2 * maxTraceCount) / Math.pow(20, 2),
+          sizemin: 5,
+          line: { color: '#ffffff', width: 1.5 },
+          opacity: 0.9,
+        },
+        customdata: traceRows.map(row => [row.vis_type, row.trace_count]),
+        hovertemplate:
+          '<b>%{customdata[0]}</b><br>' +
+          'Confirmed valid traces: %{customdata[1]}<extra></extra>',
+      },
+    ],
+    plotLayout({
+      barmode: 'relative',
+      height: 520,
+      margin: { l: 136, r: 40, t: 10, b: 48 },
+      xaxis: withAxisBase(getPlotlyTheme().xaxis, {
+        title: 'Academic figures \u2190 count \u2192 repository artifacts',
+        tickvals,
+        ticktext: tickvals.map(value => Math.abs(value).toString()),
+        range: [-roundedMax * 1.08, roundedMax * 1.08],
+      }),
+      yaxis: withAxisBase(getPlotlyTheme().yaxis, { automargin: true }),
+      shapes: [
+        {
+          type: 'line',
+          x0: 0,
+          x1: 0,
+          y0: -0.5,
+          y1: rows.length - 0.5,
+          line: { color: 'rgba(100, 116, 139, 0.35)', width: 1.5, dash: 'dot' },
+        },
+      ],
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+
+  document.getElementById('comparison-chart').on('plotly_click', event => {
+    navigateToType(event.points?.[0]?.y || event.points?.[0]?.customdata?.[0]);
+  });
+}
+
+function renderGrowthChart() {
+  Plotly.react(
+    'growth-chart',
+    [
+      {
+        type: 'bar',
+        name: 'Papers',
+        x: yearlySeries.map(row => row.year),
+        y: yearlySeries.map(row => row.papers),
+        marker: {
+          color: COLORS.academicFaint,
+          line: { color: COLORS.academic, width: 1.2 },
+        },
+        hovertemplate: '<b>%{x}</b><br>Papers: %{y}<extra></extra>',
+      },
+      {
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Visualization figures',
+        x: yearlySeries.map(row => row.year),
+        y: yearlySeries.map(row => row.figures),
+        yaxis: 'y2',
+        line: { color: COLORS.bridge, width: 3, shape: 'spline', smoothing: 0.5 },
+        marker: { color: '#ffffff', line: { color: COLORS.bridge, width: 2 }, size: 7 },
+        fill: 'tozeroy',
+        fillcolor: COLORS.bridgeFaint,
+        hovertemplate: '<b>%{x}</b><br>Vis figures: %{y}<extra></extra>',
+      },
+    ],
+    plotLayout({
+      height: 360,
+      margin: { l: 56, r: 58, t: 10, b: 44 },
+      xaxis: withAxisBase(getPlotlyTheme().xaxis, {
+        tickmode: 'array',
+        tickvals: yearlySeries.filter((_, index) => index % 4 === 0).map(row => row.year),
+      }),
+      yaxis: withAxisBase(getPlotlyTheme().yaxis, {
+        title: 'Papers',
+      }),
+      yaxis2: {
+        overlaying: 'y',
+        side: 'right',
+        title: 'Vis figures',
+        showgrid: false,
+        tickfont: { color: '#0f766e', size: 11 },
+        titlefont: { color: '#0f766e', size: 11 },
+      },
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderDriftJustificationChart() {
+  const dimensionColors = {
+    encoding: COLORS.academic,
+    interaction: COLORS.bridge,
+    task: COLORS.repo,
+  };
+  const dimensionTargets = {
+    encoding: 'drift-justification-encoding',
+    interaction: 'drift-justification-interaction',
+    task: 'drift-justification-task',
+  };
+
+  Object.entries(dimensionTargets).forEach(([dimension, target]) => {
+    const rows = [...(driftDimensionThemeRows[dimension] || [])].reverse();
+    Plotly.react(
+      target,
+      [
+        {
+          type: 'bar',
+          orientation: 'h',
+          y: rows.map(row => row.label),
+          x: rows.map(row => row.share),
+          customdata: rows.map(row => row.count),
+          text: rows.map(row => `${row.share}%`),
+          textposition: 'outside',
+          cliponaxis: false,
+          marker: {
+            color: dimensionColors[dimension],
+            opacity: 0.9,
+            line: { width: 0 },
+          },
+          hovertemplate:
+            '<b>%{y}</b><br>' +
+            '%{x}% of dimension (%{customdata} notes)<extra></extra>',
+        },
+      ],
+      plotLayout({
+        height: 280,
+        margin: { l: 150, r: 32, t: 8, b: 24 },
+        showlegend: false,
+        xaxis: withAxisBase(getPlotlyTheme().xaxis, {
+          title: '',
+          range: [0, Math.max(65, ...rows.map(row => row.share), 0)],
+          ticksuffix: '%',
+        }),
+        yaxis: withAxisBase(getPlotlyTheme().yaxis, {
+          automargin: true,
+        }),
+      }),
+      { responsive: true, displayModeBar: false }
+    );
+  });
+}
+
+function renderTrackChart() {
+  const rows = [...trackData].sort((a, b) => b.count - a.count);
+  Plotly.react(
+    'track-chart',
+    [
+      {
+        type: 'treemap',
+        labels: rows.map(row => row.label),
+        parents: rows.map(() => ''),
+        values: rows.map(row => row.count),
+        customdata: rows.map(row => row.count),
+        texttemplate: '<b>%{label}</b><br>%{customdata}',
+        hovertemplate: '<b>%{label}</b><br>%{value} papers<extra></extra>',
+        marker: {
+          colors: rows.map(row => row.track === 'unknown' ? '#cbd5e1' : COLORS.academic),
+          line: { width: 2, color: '#ffffff' },
+        },
+        tiling: { pad: 4 },
+      },
+    ],
+    plotLayout({
+      height: 300,
+      margin: { l: 6, r: 6, t: 6, b: 6 },
+      showlegend: false,
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderPlatformChart() {
+  const rows = [...platformData].sort((a, b) => b.count - a.count);
+  const platformColors = {
+    github: COLORS.academic,
+    kaggle: COLORS.bridge,
+    observablehq: COLORS.repo,
+  };
+  Plotly.react(
+    'platform-chart',
+    [
+      {
+        type: 'pie',
+        hole: 0.66,
+        sort: false,
+        labels: rows.map(row => row.label),
+        values: rows.map(row => row.count),
+        textinfo: 'percent',
+        textposition: 'inside',
+        insidetextorientation: 'horizontal',
+        hovertemplate: '<b>%{label}</b><br>%{value} repositories<extra></extra>',
+        marker: {
+          colors: rows.map(row => platformColors[row.platform] || COLORS.repo),
+          line: { color: '#ffffff', width: 2 },
+        },
+      },
+    ],
+    plotLayout({
+      height: 300,
+      margin: { l: 12, r: 12, t: 12, b: 52 },
+      showlegend: true,
+      legend: {
+        ...getPlotlyTheme().legend,
+        orientation: 'h',
+        x: 0.5,
+        xanchor: 'center',
+        y: -0.08,
+      },
+      annotations: [
+        {
+          text: `<span style="font-family:Syne,sans-serif;font-size:24px;color:#0f172a;">{{ total_notebooks }}</span><br><span style="font-size:11px;color:#475569;letter-spacing:1px;">TOTAL REPOS</span>`,
+          showarrow: false,
+        },
+      ],
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderBridgeChart() {
+  const rows = bridgeLandscape
+    .filter(row => row.trace_count > 0)
+    .sort((a, b) =>
+      (b.reviewed_count - a.reviewed_count) ||
+      (b.trace_count - a.trace_count) ||
+      (b.invalid_count - a.invalid_count) ||
+      ((b.average_drift || 0) - (a.average_drift || 0))
+    )
+    .slice(0, 10)
+    .reverse();
+
+  Plotly.react(
+    'bridge-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Confirmed valid',
+        y: rows.map(row => row.vis_type),
+        x: rows.map(row => row.trace_count),
+        customdata: rows.map(row => [
+          row.vis_type,
+          row.academic_count,
+          row.repo_count,
+          row.trace_count,
+          row.reviewed_count,
+          row.average_drift === null ? 'n/a' : row.average_drift,
+          row.invalid_count,
+          row.invalid_share,
+          row.dominant_invalid_label,
+        ]),
+        marker: {
+          color: rows.map(row => row.average_drift === null ? 0 : row.average_drift),
+          colorscale: [
+            [0, '#cbd5e1'],
+            [0.001, COLORS.none],
+            [0.5, COLORS.minor],
+            [1, COLORS.major],
+          ],
+          cmin: 0,
+          cmax: 6,
+          opacity: 0.92,
+          line: { color: '#ffffff', width: 1 },
+        },
+        hovertemplate:
+          '<b>%{customdata[0]}</b><br>' +
+          'Academic figures: %{customdata[1]}<br>' +
+          'Repository artifacts: %{customdata[2]}<br>' +
+          'Confirmed valid traces: %{customdata[3]}<br>' +
+          'Reviewed candidates: %{customdata[4]}<br>' +
+          'Avg drift (0-6): %{customdata[5]}<br>' +
+          'Rejected as invalid: %{customdata[6]} (%{customdata[7]}% of reviewed)<br>' +
+          'Main invalid pattern: %{customdata[8]}<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Rejected as invalid',
+        y: rows.map(row => row.vis_type),
+        x: rows.map(row => row.invalid_count),
+        text: rows.map(row => `${row.trace_count} valid · ${row.invalid_count} rejected`),
+        textposition: 'outside',
+        cliponaxis: false,
+        customdata: rows.map(row => [
+          row.vis_type,
+          row.trace_count,
+          row.invalid_count,
+          row.reviewed_count,
+          row.invalid_share,
+          row.dominant_invalid_label,
+        ]),
+        marker: {
+          color: 'rgba(148, 163, 184, 0.42)',
+          line: { color: 'rgba(255,255,255,0.95)', width: 1 },
+        },
+        hovertemplate:
+          '<b>%{customdata[0]}</b><br>' +
+          'Rejected as invalid: %{customdata[2]}<br>' +
+          'Confirmed valid traces: %{customdata[1]}<br>' +
+          'Reviewed candidates: %{customdata[3]}<br>' +
+          'Invalid share: %{customdata[4]}%<br>' +
+          'Main invalid pattern: %{customdata[5]}<extra></extra>',
+      },
+    ],
+    plotLayout({
+      barmode: 'stack',
+      height: 420,
+      margin: { l: 118, r: 150, t: 10, b: 36 },
+      xaxis: withAxisBase(getPlotlyTheme().xaxis, {
+        title: 'Reviewed candidate count',
+        rangemode: 'tozero',
+      }),
+      yaxis: withAxisBase(getPlotlyTheme().yaxis, {
+        automargin: true,
+      }),
+      legend: {
+        ...getPlotlyTheme().legend,
+        orientation: 'v',
+        x: 1.02,
+        xanchor: 'left',
+        y: 0.04,
+        yanchor: 'bottom',
+        bgcolor: 'rgba(255,255,255,0.78)',
+        bordercolor: 'rgba(148, 163, 184, 0.28)',
+        borderwidth: 1,
+      },
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+
+  document.getElementById('bridge-chart').on('plotly_click', event => {
+    navigateToType(event.points?.[0]?.customdata?.[0] || event.points?.[0]?.y);
+  });
+}
+
+function renderDriftChart() {
+  const totals = driftProfile.map(row => row.none + row.minor + row.major);
+  const dimensions = driftProfile.map(row => row.dimension);
+  Plotly.react(
+    'drift-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'None',
+        y: dimensions,
+        x: driftProfile.map((row, index) => ((row.none / totals[index]) * 100).toFixed(1)),
+        marker: { color: COLORS.none },
+        customdata: driftProfile.map(row => row.none),
+        hovertemplate: '<b>%{y}</b><br>None: %{customdata} traces (%{x}%)<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Minor',
+        y: dimensions,
+        x: driftProfile.map((row, index) => ((row.minor / totals[index]) * 100).toFixed(1)),
+        marker: { color: COLORS.minor },
+        customdata: driftProfile.map(row => row.minor),
+        hovertemplate: '<b>%{y}</b><br>Minor: %{customdata} traces (%{x}%)<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Major',
+        y: dimensions,
+        x: driftProfile.map((row, index) => ((row.major / totals[index]) * 100).toFixed(1)),
+        marker: { color: COLORS.major },
+        customdata: driftProfile.map(row => row.major),
+        hovertemplate: '<b>%{y}</b><br>Major: %{customdata} traces (%{x}%)<extra></extra>',
+      },
+    ],
+    plotLayout({
+      barmode: 'stack',
+      height: 460,
+      margin: { l: 92, r: 20, t: 10, b: 44 },
+      legend: {
+        ...getPlotlyTheme().legend,
+        orientation: 'h',
+        x: 0,
+        y: -0.14,
+        traceorder: 'normal',
+      },
+      xaxis: withAxisBase(getPlotlyTheme().xaxis, {
+        title: 'Share of annotations (%)',
+        range: [0, 100],
+        ticksuffix: '%',
+      }),
+      yaxis: withAxisBase(getPlotlyTheme().yaxis, {
+        automargin: true,
+      }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderDashboardCharts() {
+  renderComparisonChart();
+  renderGrowthChart();
+  renderDriftJustificationChart();
+  renderTrackChart();
+  renderPlatformChart();
+  renderBridgeChart();
+  renderDriftChart();
+}
+
+document.addEventListener('DOMContentLoaded', renderDashboardCharts);
+</script>
+{% endblock %}

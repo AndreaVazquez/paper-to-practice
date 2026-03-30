@@ -1,0 +1,1914 @@
+{% extends "ui/base.html" %}
+{% load ui_extras %}
+{% block title %}Author Narrative — {{ vis_type }}{% endblock %}
+{% block nav_narratives %}active{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+/* ── Author layout ── */
+.author-page { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 2rem; }
+.author-hero {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03);
+}
+.hero-topline {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  font-size: 11px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: .6rem;
+}
+.hero-topline a { color: var(--muted); }
+.author-hero-main {
+  display: flex; justify-content: space-between; gap: 1rem 1.5rem; align-items: flex-start;
+}
+.author-title-stack { min-width: 0; }
+.author-kicker {
+  font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--bridge);
+  margin-bottom: .5rem;
+}
+.author-title-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.author-title {
+  margin: 0;
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1;
+  color: var(--heading);
+}
+.hero-type-chip {
+  display: inline-flex; align-items: center;
+  padding: .22rem .55rem .18rem;
+  border-radius: 3px;
+  border: 1px solid var(--bridge-border);
+  background: var(--bridge-bg);
+  color: var(--bridge);
+  font-size: 11px; letter-spacing: 2px; font-weight: 700;
+  text-transform: uppercase;
+}
+.author-summary {
+  max-width: 72ch;
+  margin: .65rem 0 0;
+  color: var(--text-dim);
+  font-size: .78rem;
+  line-height: 1.65;
+}
+.author-status-row {
+  display: flex; flex-wrap: wrap; gap: .55rem;
+  margin-top: .75rem;
+}
+.status-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  min-height: 26px; padding: .22rem .5rem;
+  border-radius: 3px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text-dim);
+  font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
+}
+.status-chip strong { font-size: 12px; color: var(--heading); }
+.status-chip.status-live {
+  border-color: var(--bridge-border); background: var(--bridge-bg); color: var(--bridge);
+}
+.status-chip.status-draft {
+  border-color: #f59e0b; background: #fffbeb; color: #92400e;
+}
+.status-chip.status-empty {
+  border-style: dashed;
+}
+.hero-actions {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .55rem;
+  min-width: 230px;
+}
+.author-layout { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+.workspace-panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03);
+}
+@media (max-width: 1024px) {
+  .author-hero-main { flex-direction: column; }
+  .hero-actions { justify-content: flex-start; min-width: 0; }
+  .author-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Config panel ── */
+.config-panel { position: sticky; top: 1rem; padding: 1rem; }
+.panel-section { border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; background: var(--surface); box-shadow: none; }
+.panel-section-title { font-size: 12px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: .75rem; font-weight: 600; }
+.panel-section-hint { font-size: 12px; color: var(--muted); font-style: italic; letter-spacing: 0; font-weight: 400; text-transform: none; margin-left: .3rem; }
+.panel-intro { font-size: .76rem; line-height: 1.6; color: var(--muted); margin: -.2rem 0 .8rem; }
+.panel-section-emphasis {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.narrative-stats {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem;
+  margin-top: .9rem;
+}
+.narrative-stat {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .65rem .75rem;
+  background: var(--surface2);
+}
+.narrative-stat-label {
+  font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted);
+}
+.narrative-stat-value {
+  margin-top: .2rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.2rem;
+  color: var(--heading);
+}
+.narrative-stat-copy {
+  margin-top: .2rem;
+  font-size: .68rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.vis-search { position: relative; }
+.vis-search-input-wrap { position: relative; }
+.vis-search-icon {
+  position: absolute; left: .8rem; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: .82rem;
+}
+.vis-search-input {
+  width: 100%;
+  padding: .78rem 2.35rem .78rem 2.2rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .85rem;
+}
+.vis-search-input:focus {
+  outline: none;
+  border-color: var(--bridge-border);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.12);
+}
+.vis-search-clear {
+  position: absolute; right: .4rem; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border-radius: 3px; border: none;
+  background: transparent; color: var(--muted);
+}
+.vis-search-clear:hover { background: var(--surface2); color: var(--text); }
+.vis-search-popover {
+  display: none;
+  position: absolute; left: 0; right: 0; top: calc(100% + .45rem);
+  z-index: 20; max-height: 320px; overflow-y: auto;
+  padding: .55rem;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+}
+.vis-search-popover.open { display: block; }
+.vis-search-empty {
+  padding: .7rem; color: var(--muted); font-size: .75rem;
+}
+.vis-search-group + .vis-search-group {
+  margin-top: .65rem; padding-top: .65rem; border-top: 1px solid var(--border);
+}
+.vis-search-group-label {
+  margin-bottom: .35rem;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+}
+.vis-search-option {
+  display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+  width: 100%;
+  padding: .52rem .6rem;
+  border: none; border-radius: 4px;
+  background: transparent; color: var(--text);
+  text-align: left; font-family: inherit; font-size: .82rem;
+}
+.vis-search-option:hover,
+.vis-search-option.active {
+  background: var(--bridge-bg);
+  color: var(--bridge);
+}
+.vis-search-option small {
+  color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+}
+.vis-search-meta {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  margin-top: .65rem;
+}
+.vis-search-meta span {
+  padding: .18rem .5rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase;
+}
+.vis-quick-picks {
+  display: flex; flex-wrap: wrap; gap: .45rem;
+  margin-top: .8rem;
+}
+.vis-quick-chip {
+  padding: .32rem .55rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 11px; letter-spacing: 1px;
+}
+.vis-quick-chip:hover {
+  border-color: var(--bridge-border);
+  color: var(--bridge);
+  background: var(--bridge-bg);
+}
+.vis-quick-chip.active {
+  border-color: var(--bridge-border);
+  background: var(--bridge-bg);
+  color: var(--bridge);
+}
+/* Chart type help tooltip */
+.chart-help {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%;
+  font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none;
+  color: var(--muted); border: 1px solid var(--border);
+  cursor: pointer; margin-left: .4rem; position: relative;
+  vertical-align: middle; flex-shrink: 0;
+}
+.chart-help:hover { color: var(--academic); border-color: var(--academic-border); }
+.chart-help-popup {
+  display: none; position: absolute; left: 50%; bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--academic-border);
+  border-radius: 5px; padding: .65rem .75rem;
+  width: 230px; z-index: 999;
+  font-size: 12px; line-height: 1.7; color: var(--text);
+  letter-spacing: 0; font-weight: 400; text-transform: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  pointer-events: none;
+}
+.chart-help-popup::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--academic-border);
+}
+.chart-help:hover .chart-help-popup,
+.chart-help:focus .chart-help-popup { display: block; }
+.chart-help-popup .ch-row { display: flex; gap: .4rem; margin-bottom: .15rem; }
+.chart-help-popup .ch-mark { color: var(--academic); min-width: 70px; font-weight: 600; }
+.chart-help-popup .ch-note { color: var(--muted); }
+.chart-help-popup .ch-divider { border-top: 1px solid var(--border); margin: .4rem 0; }
+.chart-help-popup .ch-warn { color: #92400e; font-size: 12px; }
+.preset-check { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; font-size: .82rem; cursor: pointer; }
+.preset-check input { accent-color: var(--bridge); cursor: pointer; }
+/* Phase headers */
+.phase-header {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: 12px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+  border-bottom: 1px solid; padding-bottom: 6px; margin-bottom: .85rem;
+}
+.phase-header .phase-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; font-size: 12px;
+  font-weight: 700; flex-shrink: 0;
+}
+/* Sidebar action buttons */
+.btn-sidebar-secondary {
+  width: 100%; padding: .5rem .75rem;
+  font-size: 12px; letter-spacing: 1.5px; font-family: inherit;
+  border-radius: 4px; cursor: pointer; transition: background .15s, color .15s;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-sidebar-secondary:hover { border-color: var(--academic-border); color: var(--academic); background: var(--academic-bg); }
+/* Add chart row */
+.add-chart-row { display: flex; flex-direction: column; gap: .5rem; }
+.btn-add-chart {
+  width: 100%; padding: .55rem .75rem;
+  font-size: 12px; letter-spacing: 1.5px; font-family: inherit; font-weight: 700;
+  border-radius: 4px; cursor: pointer; transition: background .15s;
+  background: var(--academic-bg);
+  border: 1px solid var(--academic-border);
+  color: var(--academic);
+  text-transform: uppercase;
+}
+.btn-add-chart:hover:not(:disabled) { background: var(--academic); color: #fff; }
+.btn-add-chart:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── Draft preview ── */
+.preview-panel { padding: 1rem 1rem 1.1rem; }
+.preview-canvas {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  padding: .9rem;
+}
+.draft-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.draft-summary {
+  display: flex; flex-wrap: wrap; gap: .45rem;
+  margin-bottom: .85rem;
+}
+.draft-summary-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .24rem .5rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+}
+.draft-summary-chip strong {
+  color: var(--heading);
+  font-size: 12px;
+}
+.block-list { display: flex; flex-direction: column; gap: .75rem; min-height: 120px; }
+.block-card { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.block-card.block-text  { border-left: 3px solid var(--bridge-border); }
+.block-card.block-chart { border-left: 3px solid #d97706; }
+.block-card.block-image { border-left: 3px solid #d97706; }
+.block-card.block-figures   { border-left: 3px solid var(--academic-border); }
+.block-card.block-notebooks { border-left: 3px solid var(--repo-border); }
+.block-header { display: flex; align-items: flex-start; gap: .65rem; padding: .6rem .75rem; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.block-header-main { min-width: 0; flex: 1; }
+.block-header-topline { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin-bottom: .25rem; }
+.block-index {
+  font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted);
+}
+.block-title {
+  color: var(--heading);
+  font-size: .78rem;
+  letter-spacing: .2px;
+  font-weight: 700;
+}
+.block-subtitle {
+  margin-top: .15rem;
+  color: var(--muted);
+  font-size: .69rem;
+  line-height: 1.5;
+}
+.block-type-badge { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 3px 8px 3px 7px; border-radius: 3px; font-weight: 800; }
+.badge-text     { background: var(--bridge-bg); color: var(--bridge); border: 1px solid var(--bridge-border); border-left: 4px solid var(--bridge); }
+.badge-chart    { background: #fffbeb; color: #b45309; border: 1px solid #f59e0b; border-left: 4px solid #d97706; }
+.badge-image    { background: #fefce8; color: #92400e; border: 1px solid #f59e0b; border-left: 4px solid #b45309; }
+.badge-figures  { background: var(--academic-bg); color: var(--academic); border: 1px solid var(--academic-border); border-left: 4px solid var(--academic); }
+.badge-notebooks{ background: var(--repo-bg); color: var(--repo); border: 1px solid var(--repo-border); border-left: 4px solid var(--repo); }
+.block-actions { margin-left: auto; display: flex; gap: .4rem; }
+.drag-handle { color: var(--muted); cursor: grab; font-size: 14px; padding: 0 4px; }
+.drag-handle:active { cursor: grabbing; }
+.block-body { padding: .75rem; }
+.block-section-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  padding: .65rem .7rem;
+}
+.block-section-card + .block-section-card { margin-top: .6rem; }
+.block-section-label {
+  font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted);
+  margin-bottom: .45rem;
+}
+.block-body textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text); font-family: inherit; font-size: .82rem; line-height: 1.6; resize: vertical;
+  min-height: 160px; outline: none; padding: .7rem .75rem;
+}
+.chart-container { min-height: 240px; background: var(--surface2); border-radius: 4px; border: 1px solid var(--border); }
+.chart-prompt-label { font-size: 12px; color: var(--muted); font-style: italic; margin-top: .5rem; }
+.chart-prompt-box,
+.block-copy-box {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-dim);
+  padding: .55rem .65rem;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+.block-inline-note {
+  margin-top: .45rem;
+  color: var(--muted);
+  font-size: .69rem;
+  line-height: 1.5;
+}
+.block-control-row {
+  display: flex; gap: .5rem; align-items: center; margin-top: .6rem;
+}
+.block-control-row .form-control { background: var(--surface); }
+.fig-grid-preview { display: flex; flex-wrap: wrap; gap: .4rem; }
+.fig-thumb-sm { width: 80px; height: 60px; object-fit: cover; border-radius: 3px; border: 1px solid var(--border); }
+/* Grouped figures preview */
+.fig-paper-group-preview { margin-bottom: .65rem; }
+.fig-paper-group-preview:last-child { margin-bottom: 0; }
+.fig-paper-heading-preview {
+  font-size: 12px; color: var(--muted); margin-bottom: .3rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fig-paper-heading-preview a { color: var(--academic); text-decoration: none; }
+.fig-paper-heading-preview a:hover { text-decoration: underline; }
+.fig-thumb-row-preview { display: flex; flex-wrap: wrap; gap: .35rem; }
+.notebook-list-preview { list-style: none; padding: 0; font-size: .75rem; }
+.notebook-list-preview li { padding: .25rem 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+.notebook-list-preview a { color: var(--academic); }
+
+/* ── Similarity results ── */
+.similar-result { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .5rem .75rem; margin-bottom: .4rem; font-size: .75rem; }
+.similar-result .count-badge { font-size: 12px; color: var(--bridge); border: 1px solid var(--bridge-border); padding: 0 5px; border-radius: 2px; margin-left: .4rem; }
+
+/* ── Status bar ── */
+#status-bar { display: none; padding: .5rem .75rem; border-radius: 4px; font-size: .78rem; margin-bottom: 1rem; }
+#status-bar.info  { background: var(--academic-bg); border: 1px solid var(--academic-border); color: var(--academic); }
+#status-bar.error { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+#status-bar.ok    { background: var(--bridge-bg); border: 1px solid var(--bridge-border); color: var(--bridge); }
+
+/* ── Loading spinner ── */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--bridge); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.block-card.block-drift_evidence { border-left: 3px solid #dc2626; }
+.badge-drift-evidence { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; border-left: 4px solid #dc2626; font-weight: 800; }
+.block-card.block-query_prompt { border-left: 3px solid var(--border); }
+.badge-query-prompt { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); border-left: 4px solid var(--muted); font-weight: 800; }
+.query-prompt-preview {
+  font-style: italic; color: var(--muted); font-size: .8rem;
+  line-height: 1.65; padding: .1rem 0;
+  border-left: 3px solid var(--border); padding-left: .65rem; margin: 0;
+}
+
+/* ── Drift evidence accordion (author preview) ── */
+.drift-acc-item { border-top: 1px solid var(--border); }
+.drift-acc-item:first-child { border-top: none; }
+.drift-acc-btn {
+  width: 100%; text-align: left; background: var(--surface2);
+  border: none; color: var(--text); padding: .45rem .75rem;
+  font-family: inherit; font-size: 12px; letter-spacing: 1.5px;
+  cursor: pointer; display: flex; align-items: center; gap: .6rem;
+}
+.drift-acc-btn:hover { background: var(--bg); }
+.drift-acc-body { padding: .6rem .75rem; display: none; }
+.drift-acc-body.open { display: block; }
+.drift-sev-section { margin-bottom: .65rem; }
+.drift-sev-heading {
+  font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+  font-weight: 600; margin-bottom: .35rem;
+}
+.drift-scroll-preview {
+  max-height: 320px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.drift-note-card {
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: .45rem .6rem; margin-bottom: .35rem; font-size: 12px;
+  background: var(--surface2);
+}
+.drift-note-paper { color: var(--academic); font-size: 12px; margin-bottom: .15rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drift-note-notebook { color: var(--muted); font-size: 12px; margin-bottom: .25rem; }
+/* ── Add chart section ── */
+.add-chart-row { display: flex; gap: .5rem; }
+
+/* ── Figure picker ── */
+.fig-picker-panel {
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  padding: .75rem;
+}
+.fig-picker-toolbar {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: .65rem; flex-wrap: wrap;
+}
+.fig-picker-count {
+  font-size: 12px; color: var(--muted); letter-spacing: 1px;
+}
+.fig-picker-actions { display: flex; gap: .4rem; margin-left: auto; }
+.fig-picker-pool {
+  display: flex; flex-direction: column; gap: .75rem;
+  max-height: 420px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.fig-picker-paper { }
+.fig-picker-paper-heading {
+  font-size: 12px; color: var(--muted); margin-bottom: .35rem;
+  display: flex; align-items: baseline; gap: .3rem;
+}
+.fig-picker-paper-heading a { color: var(--academic); text-decoration: none; }
+.fig-picker-paper-heading a:hover { text-decoration: underline; }
+.fig-picker-paper-year { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.fig-picker-thumbs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.fig-picker-thumb {
+  width: 80px; height: 60px; object-fit: cover;
+  border-radius: 3px; cursor: pointer;
+  border: 2px solid transparent;
+  transition: opacity .15s, border-color .15s;
+}
+.fig-picker-thumb.selected {
+  border-color: var(--academic);
+  opacity: 1;
+}
+.fig-picker-thumb.unselected {
+  opacity: .28;
+  border-color: transparent;
+}
+.fig-picker-thumb:hover { opacity: .85; }
+.fig-picker-empty {
+  font-size: .75rem; color: var(--muted); padding: 1rem 0;
+}
+.empty-state-card {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 3.4rem 1.6rem;
+  text-align: center;
+}
+@media (max-width: 767px) {
+  .author-hero { padding: 1rem; }
+  .config-panel { padding: .9rem; }
+  .preview-panel { padding: .9rem; }
+  .preview-canvas { padding: .75rem; }
+  .narrative-stats { grid-template-columns: 1fr; }
+  .draft-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="author-page">
+  <section class="author-hero">
+    <div class="hero-topline">
+      <a href="/narratives/">Narratives</a>
+      <span>/</span>
+      <span>Author Workspace</span>
+    </div>
+    <div class="author-hero-main">
+      <div class="author-title-stack">
+        <div class="author-kicker">Narrative authoring</div>
+        <div class="author-title-row">
+          <h1 class="author-title">
+            {% if vis_type %}{{ vis_type }}{% else %}Choose a visualization type{% endif %}
+          </h1>
+          {% if vis_type %}
+          <span class="hero-type-chip">{{ vis_type|upper }}</span>
+          {% endif %}
+        </div>
+        <p class="author-summary">
+          Build a narrative from academic traces, repository evidence, and prior prompts, then refine the draft before publishing it as a live design document.
+        </p>
+        <div id="status-badge" class="author-status-row">
+          {% if narrative and narrative.status == "published" %}
+          <span class="status-chip status-live"><strong>Published</strong></span>
+          {% elif narrative %}
+          <span class="status-chip status-draft"><strong>Draft in progress</strong></span>
+          {% else %}
+          <span class="status-chip status-empty"><strong>No draft yet</strong></span>
+          {% endif %}
+          <span class="status-chip">{{ prior_query_count }} prior quer{{ prior_query_count|pluralize:"y,ies" }}</span>
+          <span class="status-chip">{{ draft_count }} version{{ draft_count|pluralize }}</span>
+          {% if narrative and narrative.status == "published" %}
+          <span class="status-chip">
+            <a href="/narratives/{{ vis_type|urlencode }}/" style="color:var(--academic)">View live ↗</a>
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button id="publish-btn" class="btn btn-primary"
+                style="font-size:12px;letter-spacing:1.5px{% if not narrative %};display:none{% endif %}"
+                onclick="publishNarrative()">
+          PUBLISH ▶
+        </button>
+        {% if narrative %}
+        <button class="btn btn-outline-secondary btn-sm"
+                style="font-size:12px;letter-spacing:1px;border-color:#fca5a5;color:#991b1b"
+                onclick="resetDraft()" title="Clear author workspace (published gallery entry stays live)">
+          RESET ✕
+        </button>
+        {% if narrative.status == "published" %}
+        <a href="/narratives/{{ vis_type|urlencode }}/"
+           class="btn btn-outline-secondary btn-sm" style="font-size:12px;letter-spacing:1px">
+          VIEW ↗
+        </a>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <div id="status-bar"></div>
+
+  <div class="author-layout">
+
+  <!-- ── LEFT: Configuration panel ── -->
+  <div class="config-panel workspace-panel">
+
+    <!-- Vis type selector -->
+    <div class="panel-section panel-section-emphasis">
+      <div class="panel-section-title">Visualization type</div>
+      <div class="panel-intro">
+        Search by subtype or family name, then jump directly into the authoring workspace for that visualization.
+      </div>
+      <div class="vis-search" id="vis-search">
+        <div class="vis-search-input-wrap">
+          <i class="bi bi-search vis-search-icon"></i>
+          <input id="vis-type-search"
+                 class="vis-search-input"
+                 type="text"
+                 autocomplete="off"
+                 spellcheck="false"
+                 placeholder="Search Bar, Heatmap, Sankey, Treemap..."
+                 value="{{ vis_type }}">
+          <button id="vis-search-clear"
+                  class="vis-search-clear"
+                  type="button"
+                  title="Clear search"
+                  {% if not vis_type %}style="display:none"{% endif %}>
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div id="vis-search-popover" class="vis-search-popover"></div>
+      </div>
+      <div class="vis-search-meta">
+        <span>{{ all_vis_types|length }} supported types</span>
+        {% if vis_type %}<span>Current: {{ vis_type }}</span>{% endif %}
+        {% if is_blank_new %}<span>Blank-slate mode</span>{% endif %}
+      </div>
+      <div class="vis-quick-picks">
+        {% for t in "Bar,Scatter,Heatmap,Line,Node-Link,Sankey"|split:"," %}
+        <button type="button"
+                class="vis-quick-chip{% if t == vis_type %} active{% endif %}"
+                onclick="navigateToVisType('{{ t|escapejs }}')">
+          {{ t }}
+        </button>
+        {% endfor %}
+      </div>
+      <div class="narrative-stats">
+        <div class="narrative-stat">
+          <div class="narrative-stat-label">Queries logged</div>
+          <div class="narrative-stat-value">{{ prior_query_count }}</div>
+          <div class="narrative-stat-copy">Previous author prompts recorded for this visualization type.</div>
+        </div>
+        <div class="narrative-stat">
+          <div class="narrative-stat-label">Narrative versions</div>
+          <div class="narrative-stat-value">{{ draft_count }}</div>
+          <div class="narrative-stat-copy">Latest version loads by default; generating creates a new row.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 1 header -->
+    <div class="phase-header" style="color:var(--bridge);border-color:var(--bridge-border);margin-top:.25rem">
+      <span class="phase-num" style="background:var(--bridge-bg);border:1px solid var(--bridge-border);color:var(--bridge)">1</span>
+      CONFIGURE &amp; GENERATE
+    </div>
+
+    <!-- NL focus prompt -->
+    <div class="panel-section">
+      <div class="panel-section-title">Focus prompt <span class="panel-section-hint">(optional)</span></div>
+      <textarea id="query-text" class="form-control" rows="3"
+                placeholder="e.g. focus on the interaction cliff, or compare InfoVis vs SciVis usage patterns"
+                style="font-size:.82rem"></textarea>
+      <div id="similar-results" class="mt-2"></div>
+      <button id="check-similar-btn" class="btn-sidebar-secondary mt-2" onclick="checkSimilar()">
+        CHECK SIMILAR QUERIES
+      </button>
+    </div>
+
+    <!-- Preset chart toggles -->
+    <div class="panel-section">
+      <div class="panel-section-title">Charts to include</div>
+      {% for preset in preset_charts %}
+      <label class="preset-check">
+        <input type="checkbox" class="preset-checkbox" value="{{ preset.id }}" checked>
+        {{ preset.label }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <!-- Custom chart bundled into the generation call -->
+    <div class="panel-section">
+      <div class="panel-section-title" style="display:flex;align-items:center;gap:.25rem;flex-wrap:wrap">
+        Custom chart
+        <span class="panel-section-hint">(optional &middot; bundled into generation)</span>
+        <span class="chart-help" tabindex="0">?<span class="chart-help-popup"><div class="ch-row"><span class="ch-mark">bar</span><span class="ch-note">counts, rankings, histograms</span></div><div class="ch-row"><span class="ch-mark">line</span><span class="ch-note">trends over time</span></div><div class="ch-row"><span class="ch-mark">scatter</span><span class="ch-note">two numeric columns</span></div><div class="ch-row"><span class="ch-mark">area</span><span class="ch-note">cumulative / stacked area</span></div><div class="ch-row"><span class="ch-mark">arc</span><span class="ch-note">pie / donut / part-of-whole</span></div><div class="ch-row"><span class="ch-mark">heatmap</span><span class="ch-note">two categorical axes</span></div><div class="ch-row"><span class="ch-mark">boxplot</span><span class="ch-note">distributions / outliers</span></div><div class="ch-divider"></div><div class="ch-warn">&#9888; treemap, sankey, node-link, chord, map not supported</div></span></span>
+      </div>
+      <textarea id="extra-chart-prompt" class="form-control" rows="2"
+                placeholder="Describe a chart to include when generating..."
+                style="font-size:.82rem"></textarea>
+    </div>
+
+    <!-- Generate button — closes Phase 1 -->
+    <button id="generate-btn" class="btn btn-primary w-100"
+            style="font-size:12px;letter-spacing:2px;padding:.65rem;margin-top:.25rem"
+            onclick="generate()" disabled>
+      GENERATE DRAFT &#9658;
+    </button>
+    <div id="generate-hint" style="font-size:12px;color:var(--muted);text-align:center;margin-top:.5rem">
+      Run similarity check above to enable
+    </div>
+
+    <!-- PHASE 2 header -->
+    <div id="phase2-header" class="phase-header"
+         style="color:{% if narrative %}var(--academic){% else %}var(--muted){% endif %};
+                border-color:{% if narrative %}var(--academic-border){% else %}var(--border){% endif %};
+                margin-top:1.5rem;
+                {% if not narrative %}opacity:.5{% endif %}">
+      <span class="phase-num"
+            style="background:{% if narrative %}var(--academic-bg){% else %}var(--surface2){% endif %};
+                   border:1px solid {% if narrative %}var(--academic-border){% else %}var(--border){% endif %};
+                   color:{% if narrative %}var(--academic){% else %}var(--muted){% endif %}">2</span>
+      EDIT DRAFT
+      {% if not narrative %}
+      <span class="phase2-hint" style="font-size:12px;color:var(--muted);letter-spacing:0;font-weight:400;font-style:italic">&#8212; generate first</span>
+      {% endif %}
+    </div>
+
+    <!-- Add chart block — operates on existing draft without regenerating -->
+    <div class="panel-section{% if not narrative %} opacity-50{% endif %}" id="add-chart-panel">
+      <div class="panel-section-title" style="display:flex;align-items:center;gap:.25rem;flex-wrap:wrap">
+        Add chart block
+        <span class="panel-section-hint">(appended to existing draft)</span>
+        <span class="chart-help" tabindex="0">?<span class="chart-help-popup"><div class="ch-row"><span class="ch-mark">bar</span><span class="ch-note">counts, rankings, histograms</span></div><div class="ch-row"><span class="ch-mark">line</span><span class="ch-note">trends over time</span></div><div class="ch-row"><span class="ch-mark">scatter</span><span class="ch-note">two numeric columns</span></div><div class="ch-row"><span class="ch-mark">area</span><span class="ch-note">cumulative / stacked area</span></div><div class="ch-row"><span class="ch-mark">arc</span><span class="ch-note">pie / donut / part-of-whole</span></div><div class="ch-row"><span class="ch-mark">heatmap</span><span class="ch-note">two categorical axes</span></div><div class="ch-row"><span class="ch-mark">boxplot</span><span class="ch-note">distributions / outliers</span></div><div class="ch-divider"></div><div class="ch-warn">&#9888; treemap, sankey, node-link, chord, map not supported</div></span></span>
+      </div>
+      {% if not narrative %}
+      <div id="add-chart-hint" style="font-size:12px;color:var(--muted);margin-bottom:.6rem">
+        <i class="bi bi-lock"></i> Generate a draft first to unlock.
+      </div>
+      {% endif %}
+      <div class="add-chart-row">
+        <textarea id="add-chart-prompt" class="form-control" rows="2"
+                  placeholder="Describe a chart to add to the draft..."
+                  style="font-size:.82rem"{% if not narrative %} disabled{% endif %}></textarea>
+        <button id="add-chart-btn" class="btn-add-chart"
+                onclick="addChart()"{% if not narrative %} disabled{% endif %}>
+          + ADD CHART
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Draft preview ── -->
+  <div class="workspace-panel preview-panel">
+    <div class="draft-header">
+      <div style="font-size:12px;letter-spacing:2px;color:var(--muted)">
+        DRAFT PREVIEW
+        &nbsp;·&nbsp; <span id="block-count">{% if narrative %}{{ narrative.get_blocks|length }}{% else %}0{% endif %}</span> BLOCKS
+      </div>
+      {% if narrative and narrative.status == "published" %}
+      <span style="font-size:12px;color:var(--bridge);letter-spacing:1px">
+        <i class="bi bi-check-circle"></i> PUBLISHED &nbsp;·&nbsp;
+        {{ narrative.view_count }} view{{ narrative.view_count|pluralize }}
+        &nbsp;·&nbsp; {{ narrative.published_at|date:"Y-m-d" }}
+      </span>
+      {% endif %}
+    </div>
+    <div id="draft-summary" class="draft-summary"></div>
+
+    <div class="preview-canvas">
+      <!-- Empty state — hidden by JS once blocks are rendered -->
+      <div id="empty-state" class="empty-state-card"{% if narrative %} style="display:none"{% endif %}>
+        <div style="font-size:12px;color:var(--muted);letter-spacing:2px">NO DRAFT YET</div>
+        <p style="font-size:.78rem;color:var(--muted);margin:.75rem auto 0;max-width:40ch;line-height:1.7">
+          Search for a visualization type, inspect similar queries, and generate a draft from the configuration panel.
+        </p>
+      </div>
+
+      <!-- Block list — always in DOM so JS can render into it -->
+      <div id="block-list" class="block-list"></div>
+    </div>
+
+    <!-- Publish button — hidden until blocks exist -->
+    <div class="mt-3" id="publish-row" style="{% if not narrative %}display:none{% endif %}">
+      <button class="btn btn-primary w-100"
+              style="font-size:12px;letter-spacing:2px;padding:.6rem"
+              onclick="publishNarrative()">
+        PUBLISH NARRATIVE ▶
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const VT = {{ vis_type_json|safe }};
+const VIS_TYPE_GROUPS = {{ vis_type_groups_json|safe }};
+const PRESET_CHARTS   = {{ preset_charts_json|safe }};
+const INITIAL_BLOCKS  = {% if narrative %}{{ narrative.blocks|safe }}{% else %}[]{% endif %};
+const PRIOR_QUERY_COUNT = {{ prior_query_count }};
+const INITIAL_DRAFT_COUNT = {{ draft_count }};
+// narrative_id tracks which Narrative row is being edited.
+// It is null when no draft exists yet, set from context on page load,
+// and updated to the new id after each generate() call.
+let NARRATIVE_ID = {{ narrative_id_json|safe }};
+const IS_NEW = {% if is_blank_new %}true{% else %}false{% endif %};
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let blocks = [];
+let similarityChecked = false;
+let sortable = null;
+let visSearchActiveIndex = -1;
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  blocks = INITIAL_BLOCKS.length > 0 ? INITIAL_BLOCKS : [];
+  renderBlocks();   // always run — hides publish button when blocks empty
+  if (INITIAL_BLOCKS.length > 0) {
+    // Draft already exists — let the author regenerate without re-checking similar
+    const genBtn  = document.getElementById('generate-btn');
+    const genHint = document.getElementById('generate-hint');
+    if (genBtn)  { genBtn.disabled = false; genBtn.textContent = 'REGENERATE DRAFT ▶'; }
+    if (genHint) genHint.style.display = 'none';
+  }
+  initVisTypeSearch();
+  initSortable();
+});
+
+// ── Vis type search ────────────────────────────────────────────────────────────
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function pluralize(count, singular, plural) {
+  return count === 1 ? singular : plural;
+}
+
+function navigateToVisType(visType) {
+  if (!visType) return;
+  const qs = IS_NEW ? '?new=1' : '';
+  window.location = `/narratives/${encodeURIComponent(visType)}/author/${qs}`;
+}
+
+function getExactVisTypeMatch(value) {
+  const query = normalizeText(value);
+  if (!query) return '';
+  for (const group of VIS_TYPE_GROUPS) {
+    for (const type of group.types || []) {
+      if (normalizeText(type) === query) return type;
+    }
+  }
+  return '';
+}
+
+function getFilteredVisGroups(query) {
+  const normalizedQuery = normalizeText(query);
+  return VIS_TYPE_GROUPS
+    .map(group => {
+      const types = (group.types || []).filter(type => {
+        if (!normalizedQuery) return true;
+        return normalizeText(`${group.category} ${type}`).includes(normalizedQuery);
+      });
+      return { category: group.category, types };
+    })
+    .filter(group => group.types.length > 0);
+}
+
+function getVisibleVisOptions() {
+  return Array.from(document.querySelectorAll('.vis-search-option'));
+}
+
+function setActiveVisOption(index) {
+  const options = getVisibleVisOptions();
+  visSearchActiveIndex = options.length ? Math.max(-1, Math.min(index, options.length - 1)) : -1;
+  options.forEach((option, idx) => {
+    option.classList.toggle('active', idx === visSearchActiveIndex);
+    if (idx === visSearchActiveIndex) {
+      option.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+function closeVisSearchPopover() {
+  const popover = document.getElementById('vis-search-popover');
+  if (!popover) return;
+  popover.classList.remove('open');
+  visSearchActiveIndex = -1;
+}
+
+function renderVisSearchOptions(query) {
+  const popover = document.getElementById('vis-search-popover');
+  if (!popover) return;
+
+  const groups = getFilteredVisGroups(query);
+  if (!groups.length) {
+    popover.innerHTML = '<div class="vis-search-empty">No matching visualization types.</div>';
+    popover.classList.add('open');
+    visSearchActiveIndex = -1;
+    return;
+  }
+
+  popover.innerHTML = groups.map(group => `
+    <div class="vis-search-group">
+      <div class="vis-search-group-label">${escHtml(group.category)}</div>
+      ${group.types.map(type => `
+        <button type="button" class="vis-search-option" data-value="${escHtml(type)}">
+          <span>${escHtml(type)}</span>
+          <small>${escHtml(group.category)}</small>
+        </button>
+      `).join('')}
+    </div>
+  `).join('');
+
+  popover.classList.add('open');
+  const options = getVisibleVisOptions();
+  options.forEach((option, idx) => {
+    option.addEventListener('mouseenter', () => setActiveVisOption(idx));
+    option.addEventListener('click', () => navigateToVisType(option.dataset.value || ''));
+  });
+
+  const exactMatch = getExactVisTypeMatch(query);
+  const initialIndex = exactMatch
+    ? options.findIndex(option => option.dataset.value === exactMatch)
+    : -1;
+  setActiveVisOption(initialIndex);
+}
+
+function updateVisSearchClearButton() {
+  const clearBtn = document.getElementById('vis-search-clear');
+  const input = document.getElementById('vis-type-search');
+  if (!clearBtn || !input) return;
+  clearBtn.style.display = input.value.trim() ? '' : 'none';
+}
+
+function initVisTypeSearch() {
+  const searchRoot = document.getElementById('vis-search');
+  const input = document.getElementById('vis-type-search');
+  const clearBtn = document.getElementById('vis-search-clear');
+  if (!searchRoot || !input || !clearBtn) return;
+
+  updateVisSearchClearButton();
+
+  input.addEventListener('focus', () => renderVisSearchOptions(input.value));
+  input.addEventListener('click', () => renderVisSearchOptions(input.value));
+  input.addEventListener('input', () => {
+    updateVisSearchClearButton();
+    renderVisSearchOptions(input.value);
+  });
+  input.addEventListener('keydown', evt => {
+    const options = getVisibleVisOptions();
+    if (evt.key === 'ArrowDown') {
+      evt.preventDefault();
+      if (!options.length) renderVisSearchOptions(input.value);
+      setActiveVisOption(visSearchActiveIndex + 1);
+      return;
+    }
+    if (evt.key === 'ArrowUp') {
+      evt.preventDefault();
+      setActiveVisOption(visSearchActiveIndex <= 0 ? options.length - 1 : visSearchActiveIndex - 1);
+      return;
+    }
+    if (evt.key === 'Enter') {
+      const activeOption = getVisibleVisOptions()[visSearchActiveIndex];
+      const exactMatch = getExactVisTypeMatch(input.value);
+      if (activeOption || exactMatch) {
+        evt.preventDefault();
+        navigateToVisType((activeOption && activeOption.dataset.value) || exactMatch);
+      }
+      return;
+    }
+    if (evt.key === 'Escape') {
+      closeVisSearchPopover();
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    updateVisSearchClearButton();
+    input.focus();
+    renderVisSearchOptions('');
+  });
+
+  document.addEventListener('click', evt => {
+    if (!searchRoot.contains(evt.target)) closeVisSearchPopover();
+  });
+}
+
+function updateHeroStatus(status, liveUrl = '') {
+  const badge = document.getElementById('status-badge');
+  if (!badge) return;
+  const versionCount = Math.max(INITIAL_DRAFT_COUNT, NARRATIVE_ID ? 1 : 0);
+  const statusChip = status === 'published'
+    ? '<span class="status-chip status-live"><strong>Published</strong></span>'
+    : status === 'draft'
+      ? '<span class="status-chip status-draft"><strong>Draft in progress</strong></span>'
+      : '<span class="status-chip status-empty"><strong>No draft yet</strong></span>';
+  const liveChip = status === 'published' && liveUrl
+    ? `<span class="status-chip"><a href="${liveUrl}" style="color:var(--academic)" target="_blank">View live ↗</a></span>`
+    : '';
+  badge.innerHTML = `
+    ${statusChip}
+    <span class="status-chip">${PRIOR_QUERY_COUNT} prior ${pluralize(PRIOR_QUERY_COUNT, 'query', 'queries')}</span>
+    <span class="status-chip">${versionCount} ${pluralize(versionCount, 'version', 'versions')}</span>
+    ${liveChip}
+  `;
+}
+
+// ── Status bar ─────────────────────────────────────────────────────────────────
+function showStatus(msg, type = 'info') {
+  const bar = document.getElementById('status-bar');
+  bar.className = type;
+  bar.style.display = 'block';
+  bar.innerHTML = msg;
+}
+function hideStatus() {
+  document.getElementById('status-bar').style.display = 'none';
+}
+
+// ── API helper ─────────────────────────────────────────────────────────────────
+async function api(path, body) {
+  // Always include narrative_id so the backend routes to the right row.
+  const payload = NARRATIVE_ID !== null
+    ? Object.assign({ narrative_id: NARRATIVE_ID }, body)
+    : body;
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+// ── Similarity check ───────────────────────────────────────────────────────────
+async function checkSimilar() {
+  const query = document.getElementById('query-text').value.trim();
+  const btn   = document.getElementById('check-similar-btn');
+  const genBtn = document.getElementById('generate-btn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Checking…';
+
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/check-similar/`, {
+      query_text: query || '(no focus prompt)',
+    });
+
+    const container = document.getElementById('similar-results');
+    if (data.matches && data.matches.length > 0) {
+      let html = `<div style="font-size:12px;color:var(--muted);margin-bottom:.4rem;letter-spacing:1px">
+        ${data.total_prior_queries} prior queries — similar found:</div>`;
+      data.matches.forEach(m => {
+        const link = m.narrative_id
+          ? `<a href="/narratives/${encodeURIComponent(m.narrative_vis_type)}/" style="color:var(--academic)">view narrative ↗</a> &nbsp;`
+          : '';
+        html += `<div class="similar-result">
+          "${m.query_text}"
+          <span class="count-badge">${m.count}×</span>
+          ${link}
+        </div>`;
+      });
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = `<div style="font-size:12px;color:var(--muted)">
+        No similar queries found. ${data.total_prior_queries} total queries logged.</div>`;
+    }
+
+    // Enable generate button
+    genBtn.disabled = false;
+    genBtn.style.opacity = '1';
+    document.getElementById('generate-hint').style.display = 'none';
+    similarityChecked = true;
+
+  } catch (err) {
+    showStatus('Similarity check failed: ' + err.message, 'error');
+    // Enable anyway so the user isn't blocked
+    genBtn.disabled = false;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'CHECK SIMILAR QUERIES';
+  }
+}
+
+// ── Generate ───────────────────────────────────────────────────────────────────
+async function generate() {
+  if (!VT) {
+    showStatus('Please select a visualization type first.', 'error');
+    return;
+  }
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> GENERATING…';
+  showStatus('Calling REASONING model for narrative text and QUERY model for charts…', 'info');
+
+  const enabledPresets = Array.from(document.querySelectorAll('.preset-checkbox:checked'))
+    .map(el => el.value);
+  const queryText  = document.getElementById('query-text').value.trim();
+  const extraInput = document.getElementById('extra-chart-prompt');
+  const extras     = extraInput && extraInput.value.trim() ? [extraInput.value.trim()] : [];
+
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/generate/`, {
+      query_text: queryText,
+      enabled_presets: enabledPresets,
+      extra_chart_prompts: extras,
+    });
+
+    if (data.error) {
+      showStatus('Generation error: ' + data.error, 'error');
+      return;
+    }
+
+    NARRATIVE_ID = data.narrative_id;
+    blocks = data.blocks;
+    renderBlocks();
+    updateBlockCount();
+    updateHeroStatus('draft');
+    showStatus('Draft generated. Review and edit below, then publish when ready.', 'ok');
+
+    // Enable add-chart panel now that a narrative exists
+    enableAddChart();
+
+  } catch (err) {
+    showStatus('Generation failed: ' + err, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'REGENERATE DRAFT ▶';
+  }
+}
+
+function enableAddChart() {
+  const ta   = document.getElementById('add-chart-prompt');
+  const btn  = document.getElementById('add-chart-btn');
+  const hint = document.getElementById('add-chart-hint');
+  if (ta)   { ta.disabled = false; }
+  if (btn)  { btn.disabled = false; }
+  if (hint) { hint.style.display = 'none'; }
+
+  // Remove opacity-50 from the add-chart panel itself
+  const panel = document.getElementById('add-chart-panel');
+  if (panel) { panel.classList.remove('opacity-50'); }
+
+  // Light up the Phase 2 header — match the active state the server renders when a narrative exists
+  const phase2 = document.getElementById('phase2-header');
+  if (phase2) {
+    phase2.style.color       = 'var(--academic)';
+    phase2.style.borderColor = 'var(--academic-border)';
+    phase2.style.opacity     = '1';
+    const badge = phase2.querySelector('.phase-num');
+    if (badge) {
+      badge.style.background   = 'var(--academic-bg)';
+      badge.style.borderColor  = 'var(--academic-border)';
+      badge.style.color        = 'var(--academic)';
+    }
+    const hint2 = phase2.querySelector('.phase2-hint');
+    if (hint2) { hint2.remove(); }
+  }
+}
+
+// ── Add chart ──────────────────────────────────────────────────────────────────
+async function addChart() {
+  const ta  = document.getElementById('add-chart-prompt');
+  const prompt = ta ? ta.value.trim() : '';
+  if (!prompt) return;
+
+  showStatus('<span class="spinner"></span> Generating chart…', 'info');
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/add-chart/`, { prompt });
+    if (data.error) { showStatus('Error: ' + data.error, 'error'); return; }
+    blocks = insertBeforeEvidence(blocks, data.block);
+    renderBlocks();
+    updateBlockCount();
+    ta.value = '';
+    hideStatus();
+  } catch (err) {
+    showStatus('Add chart failed: ' + err, 'error');
+  }
+}
+
+function insertBeforeEvidence(blocks, block) {
+  const idx = blocks.findIndex(b => b.type === 'figures' || b.type === 'notebooks');
+  if (idx === -1) return [...blocks, block];
+  return [...blocks.slice(0, idx), block, ...blocks.slice(idx)];
+}
+
+// ── Delete block ───────────────────────────────────────────────────────────────
+async function deleteBlock(uuid) {
+  if (!confirm('Remove this block?')) return;
+  await api(`/narratives/${encodeURIComponent(VT)}/delete-block/`, { uuid });
+  blocks = blocks.filter(b => b.uuid !== uuid);
+  renderBlocks();
+  updateBlockCount();
+}
+
+// ── Regenerate chart ───────────────────────────────────────────────────────────
+async function regenChart(uuid) {
+  const promptEl = document.getElementById('regen-prompt-' + uuid);
+  const newPrompt = promptEl ? promptEl.value.trim() : '';
+  showStatus('<span class="spinner"></span> Regenerating chart…', 'info');
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/regen-chart/`, {
+      uuid, new_prompt: newPrompt,
+    });
+    if (data.error) { showStatus('Error: ' + data.error, 'error'); return; }
+    const idx = blocks.findIndex(b => b.uuid === uuid);
+    if (idx !== -1) blocks[idx] = data.block;
+    renderBlocks();
+    hideStatus();
+  } catch (err) {
+    showStatus('Regen failed: ' + err, 'error');
+  }
+}
+
+// ── Publish ────────────────────────────────────────────────────────────────────
+async function publishNarrative() {
+  if (!confirm('Publish this narrative? It will be served to all visitors.')) return;
+  showStatus('<span class="spinner"></span> Publishing…', 'info');
+  saveTextEdits();
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/publish/`, {});
+    if (data.error) { showStatus('Publish error: ' + data.error, 'error'); return; }
+    updateHeroStatus('published', data.redirect);
+    showStatus(`Published. <a href="${data.redirect}" style="color:var(--bridge)" target="_blank">View live narrative ↗</a> — you can generate a new version at any time; it will not overwrite this one.`, 'ok');
+  } catch (err) {
+    showStatus('Publish failed: ' + err, 'error');
+  }
+}
+
+// ── Save text edits ────────────────────────────────────────────────────────────
+function saveTextEdits() {
+  document.querySelectorAll('.text-block-textarea').forEach(ta => {
+    const uuid = ta.dataset.uuid;
+    const block = blocks.find(b => b.uuid === uuid);
+    if (block) block.content = ta.value;
+  });
+  // Persist to server
+  api(`/narratives/${encodeURIComponent(VT)}/reorder/`, {
+    order: blocks.map(b => b.uuid),
+  });
+}
+
+// ── Reset Draft ────────────────────────────────────────────────────────────────
+async function resetDraft() {
+  if (!confirm('Delete this narrative? This removes it from the gallery. Other narratives for this type are not affected. Cannot be undone.')) return;
+  showStatus('<span class="spinner"></span> Resetting…', 'info');
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/reset-draft/`, {});
+    if (data.error) { showStatus('Reset error: ' + data.error, 'error'); return; }
+    // Redirect to a clean URL — no ?narrative_id= — so the next generate
+    // creates a fresh row rather than the server re-loading the deleted one.
+    window.location.href = '/narratives/' + encodeURIComponent(VT) + '/author/';
+  } catch (err) {
+    showStatus('Reset failed: ' + err, 'error');
+  }
+}
+
+// ── SortableJS ─────────────────────────────────────────────────────────────────
+function initSortable() {
+  const list = document.getElementById('block-list');
+  if (!list) return;
+  sortable = Sortable.create(list, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: async function(evt) {
+      const items = list.querySelectorAll('.block-card[data-uuid]');
+      const newOrder = Array.from(items).map(el => el.dataset.uuid);
+      blocks = newOrder.map(uid => blocks.find(b => b.uuid === uid)).filter(Boolean);
+      await api(`/narratives/${encodeURIComponent(VT)}/reorder/`, { order: newOrder });
+    },
+  });
+}
+
+// ── Block count ────────────────────────────────────────────────────────────────
+function updateBlockCount() {
+  const el = document.getElementById('block-count');
+  if (el) el.textContent = blocks.length;
+}
+
+function getBlockMeta(block, index, typeIndex) {
+  const labels = {
+    text: {
+      title: `Narrative text ${typeIndex}`,
+      subtitle: 'Core prose for the published narrative. Edit directly in place.',
+    },
+    chart: {
+      title: `Evidence chart ${typeIndex}`,
+      subtitle: 'Structured evidence derived from the live database.',
+    },
+    image: {
+      title: `Generated visual ${typeIndex}`,
+      subtitle: 'Prompted image block included in the narrative sequence.',
+    },
+    figures: {
+      title: 'Academic figure evidence',
+      subtitle: 'Figures selected from traced and related papers for this visualization type.',
+    },
+    notebooks: {
+      title: 'Repository implementations',
+      subtitle: 'Notebook and repository examples that operationalize this visualization type.',
+    },
+    drift_evidence: {
+      title: 'Drift evidence notes',
+      subtitle: 'Annotated observations comparing research intent to practice.',
+    },
+    query_prompt: {
+      title: 'Published guidance prompt',
+      subtitle: 'Optional author guidance shown with the published narrative.',
+    },
+  };
+  return labels[block.type] || {
+    title: `Block ${index + 1}`,
+    subtitle: 'Narrative content block.',
+  };
+}
+
+function renderDraftSummary() {
+  const el = document.getElementById('draft-summary');
+  if (!el) return;
+  if (!blocks.length) {
+    el.innerHTML = `
+      <span class="draft-summary-chip"><strong>0</strong> blocks</span>
+      <span class="draft-summary-chip">No draft structure yet</span>
+    `;
+    return;
+  }
+
+  const totals = blocks.reduce((acc, block) => {
+    acc[block.type] = (acc[block.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const labels = {
+    text: 'text',
+    chart: 'charts',
+    image: 'images',
+    figures: 'figure pools',
+    notebooks: 'repo pools',
+    drift_evidence: 'drift notes',
+    query_prompt: 'guidance prompts',
+  };
+
+  const chips = [
+    `<span class="draft-summary-chip"><strong>${blocks.length}</strong> ${pluralize(blocks.length, 'block', 'blocks')}</span>`,
+  ];
+
+  Object.entries(labels).forEach(([key, label]) => {
+    if (totals[key]) {
+      chips.push(`<span class="draft-summary-chip"><strong>${totals[key]}</strong> ${label}</span>`);
+    }
+  });
+
+  el.innerHTML = chips.join('');
+}
+
+// ── Render blocks ──────────────────────────────────────────────────────────────
+// ── Figures block body HTML (shared by renderBlocks and surgical patch) ────────
+
+function _figuresBlockBodyHTML(block) {
+  const tracedPapers = block.traced_papers || [];
+  const relatedPapers = block.papers || [];
+  const totalFigs = (block.figure_ids || []).length;
+
+  function renderPaperGroup(paper) {
+    const doi = paper.doi || '';
+    const doiHref = doi ? `https://doi.org/${doi}` : '#';
+    const thumbs = (paper.figures || []).map(f => {
+      const relPath = f.image_local_path ? getRelPath(f.image_local_path) : '';
+      return relPath
+        ? `<img class="fig-thumb-sm" src="/media/${relPath}"
+                alt="${escHtml(paper.title || '')}"
+                onerror="this.style.display='none'">`
+        : '';
+    }).join('');
+    return `
+      <div class="fig-paper-group-preview">
+        <div class="fig-paper-heading-preview">
+          <a href="${doiHref}" target="_blank">${escHtml(paper.title || 'Unknown')}</a>
+          <span style="color:var(--muted);font-size:.69rem">&nbsp;${escHtml(String(paper.year || ''))}</span>
+        </div>
+      <div class="fig-thumb-row-preview">${thumbs}</div>
+      </div>`;
+  }
+
+  let html = `<div class="fig-picker-panel" id="picker-${block.uuid}" style="display:none"></div>
+  <div class="block-body">`;
+
+  // Tier 1 — Traced figures
+  html += `<div style="font-size:11px;letter-spacing:1.5px;font-weight:700;
+    color:var(--bridge);background:var(--bridge-bg);
+    border:1px solid var(--bridge-border);border-left:3px solid var(--bridge);
+    display:inline-block;padding:2px 8px;border-radius:3px;margin-bottom:.5rem">
+    ✓ TRACED ACADEMIC SOURCES</div>`;
+  if (tracedPapers.length > 0) {
+    html += tracedPapers.map(renderPaperGroup).join('');
+  } else {
+    html += `<div style="font-size:.7rem;color:var(--muted);font-style:italic;margin-bottom:.5rem">No verified traces yet.</div>`;
+  }
+
+  // Tier 2 — Related figures
+  if (relatedPapers.length > 0) {
+    html += `<div style="display:flex;align-items:center;gap:.6rem;margin:.9rem 0 .5rem">
+      <div style="flex:1;height:2px;background:var(--academic-bg);border-top:1px solid var(--academic-border)"></div>
+      <span style="font-size:11px;letter-spacing:1.5px;color:var(--academic);white-space:nowrap;font-weight:700;
+                   background:var(--academic-bg);border:1px solid var(--academic-border);
+                   padding:1px 8px;border-radius:3px">
+        ↳ OTHER RELATED ACADEMIC SOURCES</span>
+      <div style="flex:1;height:2px;background:var(--academic-bg);border-top:1px solid var(--academic-border)"></div>
+    </div>`;
+    html += relatedPapers.map(renderPaperGroup).join('');
+  }
+
+  html += `
+    <div style="font-size:.7rem;color:var(--muted);margin-top:.65rem">
+      ${totalFigs} figure${totalFigs !== 1 ? 's' : ''} in related pool
+      · ${tracedPapers.length} traced paper${tracedPapers.length !== 1 ? 's' : ''}
+    </div>
+  </div>`;
+
+  return html;
+}
+
+function renderBlocks() {
+  const list = document.getElementById('block-list');
+  if (!list) return;
+
+  const emptyState  = document.getElementById('empty-state');
+  const publishRow  = document.getElementById('publish-row');
+  const publishBtn  = document.getElementById('publish-btn');
+
+  list.innerHTML = '';
+  let chartIdx = 0;
+  const typeCounts = {};
+
+  blocks.forEach((block, i) => {
+    typeCounts[block.type] = (typeCounts[block.type] || 0) + 1;
+    const blockMeta = getBlockMeta(block, i, typeCounts[block.type]);
+    const card = document.createElement('div');
+    card.className = `block-card block-${block.type}`;
+    card.dataset.uuid = block.uuid;
+
+    const typeBadge = {
+      text: '<span class="block-type-badge badge-text">TEXT</span>',
+      chart: '<span class="block-type-badge badge-chart">CHART</span>',
+      image: '<span class="block-type-badge badge-image">IMAGE</span>',
+      figures: '<span class="block-type-badge badge-figures">FIGURES</span>',
+      notebooks: '<span class="block-type-badge badge-notebooks">NOTEBOOKS</span>',
+      drift_evidence: '<span class="block-type-badge badge-drift-evidence">DRIFT EVIDENCE</span>',
+      query_prompt: '<span class="block-type-badge badge-query-prompt">GUIDANCE PROMPT</span>',
+    }[block.type] || '';
+
+    const header = `
+      <div class="block-header">
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        <div class="block-header-main">
+          <div class="block-header-topline">
+            ${typeBadge}
+            <span class="block-index">Block ${i + 1}</span>
+          </div>
+          <div class="block-title">${escHtml(blockMeta.title)}</div>
+          <div class="block-subtitle">${escHtml(blockMeta.subtitle)}</div>
+        </div>
+        <div class="block-actions">
+          ${block.type === 'figures' ? `
+          <button class="btn btn-sm py-0 px-2"
+                  style="font-size:12px;font-weight:700;letter-spacing:1px;
+                         background:var(--academic);color:#fff;
+                         border:1px solid var(--academic-border)"
+                  onclick="openFigurePicker('${block.uuid}')"
+                  title="Customise which figures appear in this narrative">
+            ✎ CUSTOMIZE
+          </button>` : ''}
+          <button class="btn btn-outline-secondary btn-sm py-0 px-1"
+                  style="font-size:12px" onclick="deleteBlock('${block.uuid}')">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>`;
+
+    let body = '';
+
+    if (block.type === 'text') {
+      body = `
+        <div class="block-body">
+          <div class="block-section-card">
+            <div class="block-section-label">Narrative copy</div>
+            <textarea class="text-block-textarea" data-uuid="${block.uuid}"
+              >${escHtml(block.content || '')}</textarea>
+          </div>
+        </div>`;
+
+    } else if (block.type === 'query_prompt') {
+      body = `
+        <div class="block-body">
+          <div class="block-section-card">
+            <div class="block-section-label">Prompt text</div>
+            <p class="query-prompt-preview">${escHtml(block.content || '')}</p>
+            <div class="block-inline-note">
+              Shown in italic below the narrative text in the published OER.
+              Delete this block to omit it from the published output.
+            </div>
+          </div>
+        </div>`;
+
+    } else if (block.type === 'chart') {
+      const chartId = 'chart-preview-' + chartIdx;
+      chartIdx++;
+      body = `
+        <div class="block-body">
+          <div id="${chartId}" class="chart-container"></div>
+          <div class="block-section-card">
+            <div class="block-section-label">Source prompt</div>
+            <div class="chart-prompt-box">${escHtml(block.prompt || '')}</div>
+          </div>
+          <div class="block-section-card">
+            <div class="block-section-label">Chart controls</div>
+            <div class="block-control-row"
+                 title="Preset charts are computed directly from the database and cannot be re-prompted. Add a custom chart instead.">
+              <input type="text" class="form-control form-control-sm" disabled
+                     placeholder="Preset chart — computed from live data"
+                     style="font-size:.75rem;opacity:.4;cursor:not-allowed">
+              <button class="btn btn-outline-secondary btn-sm py-0" disabled
+                      style="font-size:12px;white-space:nowrap;opacity:.4;cursor:not-allowed">
+                REGEN ↺
+              </button>
+            </div>
+            <div class="block-inline-note">
+              Preset chart built from live DB data, not re-promptable.
+            </div>
+          </div>
+        </div>`;
+
+      // Render Plotly after inserting to DOM
+      setTimeout(() => renderChart(chartId, block.plotly_spec), 50);
+
+    } else if (block.type === 'image') {
+      const hasImg = block.image_b64 && block.image_b64.length > 0;
+      const errMsg = block._error ? `<div style="color:#991b1b;font-size:12px;margin-bottom:.5rem">Error: ${escHtml(block._error)}</div>` : '';
+      body = `
+        <div class="block-body">
+          ${errMsg}
+          ${hasImg ? `<img src="${block.image_b64}" alt="${escHtml(block.prompt||'')}" style="max-width:100%;border-radius:4px;border:1px solid var(--border)">` : '<div style="color:var(--muted);font-size:.75rem;padding:.5rem">No image — render failed</div>'}
+          <div class="block-section-card">
+            <div class="block-section-label">Image prompt</div>
+            <div class="chart-prompt-box">${escHtml(block.prompt || '')}</div>
+            <div class="block-control-row">
+              <input type="text" id="regen-prompt-${block.uuid}" class="form-control form-control-sm"
+                     placeholder="New prompt (or leave blank to reuse existing)"
+                     style="font-size:.75rem">
+              <button class="btn btn-outline-secondary btn-sm py-0"
+                      style="font-size:12px;white-space:nowrap"
+                      onclick="regenChart('${block.uuid}')">
+                REGEN ↺
+              </button>
+            </div>
+          </div>
+        </div>`;
+
+    } else if (block.type === 'figures') {
+      body = _figuresBlockBodyHTML(block);
+
+    } else if (block.type === 'notebooks') {
+      const traced = (block.traced_notebooks || []).slice(0, 8);
+      const related = (block.metadata || []).slice(0, 8);
+
+      function nbItem(nb) {
+        return `
+          <li>
+            <span class="platform-badge platform-${(nb.platform||'').toLowerCase()}">
+              ${escHtml(nb.platform || '')}
+            </span>
+            <a href="${escHtml(nb.url || '#')}" target="_blank">${escHtml(nb.title || '')}</a>
+            ${nb.stars ? `<span class="nb-stars">★ ${nb.stars}</span>` : ''}
+          </li>`;
+      }
+
+      const tracedHtml = traced.length > 0
+        ? `<ul class="notebook-list-preview">${traced.map(nbItem).join('')}</ul>`
+        : `<div style="font-size:.7rem;color:var(--muted);font-style:italic">No verified traces yet.</div>`;
+
+      const relatedHtml = related.length > 0
+        ? `<ul class="notebook-list-preview">${related.map(nbItem).join('')}</ul>`
+        : '';
+
+      body = `
+        <div class="block-body">
+          <div style="font-size:11px;letter-spacing:1.5px;font-weight:700;
+            color:var(--bridge);background:var(--bridge-bg);
+            border:1px solid var(--bridge-border);border-left:3px solid var(--bridge);
+            display:inline-block;padding:2px 8px;border-radius:3px;margin-bottom:.5rem">
+            ✓ TRACED REPOSITORY IMPLEMENTATIONS</div>
+          ${tracedHtml}
+          ${related.length > 0 ? `
+          <div style="display:flex;align-items:center;gap:.6rem;margin:.9rem 0 .5rem">
+            <div style="flex:1;height:2px;background:var(--academic-bg);border-top:1px solid var(--academic-border)"></div>
+            <span style="font-size:11px;letter-spacing:1.5px;color:var(--academic);white-space:nowrap;font-weight:700;
+                         background:var(--academic-bg);border:1px solid var(--academic-border);
+                         padding:1px 8px;border-radius:3px">
+              ↳ OTHER RELATED REPOSITORIES</span>
+            <div style="flex:1;height:2px;background:var(--academic-bg);border-top:1px solid var(--academic-border)"></div>
+          </div>
+          ${relatedHtml}` : ''}
+          <div style="font-size:.7rem;color:var(--muted);margin-top:.5rem">
+            ${traced.length} traced · ${related.length} related
+          </div>
+        </div>`;
+
+    } else if (block.type === 'drift_evidence') {
+      const dims = ['encoding', 'interaction', 'task'];
+      const sevColors = { major: '#991b1b', minor: '#92400e', none: '#0f766e' };
+      const accId = 'drift-acc-' + block.uuid;
+
+      const dimPanels = dims.map((dim, di) => {
+        const dimTotals  = (block.totals  || {})[dim] || {};
+        const dimData    = (block.dimensions || {})[dim] || {};
+        const dimBodyId  = `${accId}-${dim}`;
+
+        const countsBadges = ['major','minor','none']
+          .filter(s => dimTotals[s] > 0)
+          .map(s => `<span style="color:${sevColors[s]};font-size:.69rem">${dimTotals[s]}\u00a0${s}</span>`)
+          .join('<span style="color:var(--muted)"> · </span>');
+
+        const sevSections = ['major','minor','none'].map(sev => {
+          const entries = dimData[sev] || [];
+          if (!entries.length) return '';
+          const cards = entries.map(e => `
+            <div class="drift-note-card">
+              <div class="drift-note-paper">${escHtml(e.paper_title || '')}</div>
+              <div class="drift-note-notebook">${escHtml(e.notebook_title || '')}</div>
+              <div class="drift-note-text">${escHtml(e.notes || '—')}</div>
+            </div>`).join('');
+          return `
+            <div class="drift-sev-section">
+              <div class="drift-sev-heading" style="color:${sevColors[sev]}">${sev.toUpperCase()} (${entries.length})</div>
+              <div class="drift-scroll-preview">${cards}</div>
+            </div>`;
+        }).join('');
+
+        return `
+          <div class="drift-acc-item">
+            <button class="drift-acc-btn" onclick="toggleDriftPanel('${dimBodyId}', this)">
+              <span style="font-size:.6rem;color:var(--muted)" data-chevron>▶</span>
+              <span style="letter-spacing:2px">${dim.toUpperCase()}</span>
+              <span>${countsBadges}</span>
+            </button>
+            <div class="drift-acc-body" id="${dimBodyId}">${sevSections}</div>
+          </div>`;
+      }).join('');
+
+      body = `
+        <div class="block-body p-0" style="border-top:1px solid var(--border)">
+          <div style="font-size:.69rem;color:var(--muted);padding:.4rem .75rem">
+            ${block.total || 0} annotation${block.total !== 1 ? 's' : ''} — click a dimension to expand
+          </div>
+          <div id="${accId}">${accPanels(dimPanels)}</div>
+        </div>`;
+    }
+
+    card.innerHTML = header + body;
+    list.appendChild(card);
+  });
+
+  // Re-attach sortable after re-render
+  if (sortable) sortable.destroy();
+  initSortable();
+
+  // Toggle empty state / publish controls based on whether blocks exist
+  const hasBlocks = blocks.length > 0;
+  renderDraftSummary();
+  if (emptyState)  emptyState.style.display  = hasBlocks ? 'none' : '';
+  if (publishRow)  publishRow.style.display  = hasBlocks ? ''     : 'none';
+  if (publishBtn)  publishBtn.style.display  = hasBlocks ? ''     : 'none';
+}
+
+// ── Figure picker ──────────────────────────────────────────────────────────────
+
+// Pool cache — fetched once per page load per vis_type
+let _figPoolCache = null;
+let _figPoolLoading = false;
+
+async function openFigurePicker(blockUuid) {
+  const panel = document.getElementById('picker-' + blockUuid);
+  if (!panel) return;
+
+  // Toggle off if already open
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    return;
+  }
+
+  // Find the block in our state to know which figures are currently selected
+  const block = blocks.find(b => b.uuid === blockUuid);
+  if (!block) return;
+  const currentIds = new Set((block.figure_ids || []).map(Number));
+
+  // Show loading state immediately
+  panel.style.display = '';
+  panel.innerHTML = `
+    <div class="fig-picker-toolbar">
+      <span class="fig-picker-count">Loading pool…</span>
+    </div>`;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Fetch pool if not yet cached
+  if (!_figPoolCache) {
+    if (_figPoolLoading) return; // concurrent open — wait for first
+    _figPoolLoading = true;
+    try {
+      const res = await fetch(`/narratives/${encodeURIComponent(VT)}/figures-pool/`);
+      const data = await res.json();
+      _figPoolCache = data.figures || [];
+    } catch (err) {
+      panel.innerHTML = `<div class="fig-picker-empty">Failed to load pool: ${escHtml(String(err))}</div>`;
+      _figPoolLoading = false;
+      return;
+    }
+    _figPoolLoading = false;
+  }
+
+  _renderPickerPanel(panel, blockUuid, currentIds);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function _renderPickerPanel(panel, blockUuid, selectedIds) {
+  const pool = _figPoolCache || [];
+  if (!pool.length) {
+    panel.innerHTML = '<div class="fig-picker-empty">No figures in pool for this type.</div>';
+    return;
+  }
+
+  // Group pool by paper (title+doi as key, preserving pool order)
+  const paperMap = new Map(); // key → {title, year, doi, source, figures:[]}
+  for (const f of pool) {
+    const key = f.paper_doi || f.paper_title;
+    if (!paperMap.has(key)) {
+      paperMap.set(key, {
+        title: f.paper_title,
+        year: f.paper_year,
+        doi: f.paper_doi,
+        source: f.annotation_source,  // 'visimages_json' | 'llm_classified'
+        figures: [],
+      });
+    }
+    paperMap.get(key).figures.push(f);
+  }
+
+  const selCount = [...pool].filter(f => selectedIds.has(f.id)).length;
+
+  const groups = [...paperMap.values()].map(paper => {
+    const doiHref = paper.doi ? `https://doi.org/${paper.doi}` : '#';
+    const sourceBadge = paper.source === 'visimages_json'
+      ? `<span style="font-size:11px;letter-spacing:1px;font-weight:700;
+           color:var(--academic);background:var(--academic-bg);
+           border:1px solid var(--academic-border);border-left:3px solid var(--academic);
+           padding:1px 6px;border-radius:3px;flex-shrink:0">VIS</span>`
+      : `<span style="font-size:11px;letter-spacing:1px;font-weight:700;
+           color:#b45309;background:#fffbeb;
+           border:1px solid #f59e0b;border-left:3px solid #d97706;
+           padding:1px 6px;border-radius:3px;flex-shrink:0">LLM</span>`;
+    const thumbs = paper.figures.map(f => {
+      const relPath = f.image_path ? getRelPath(f.image_path) : '';
+      const src = relPath ? `/media/${relPath}` : '';
+      const isSel = selectedIds.has(f.id);
+      return src
+        ? `<img class="fig-picker-thumb ${isSel ? 'selected' : 'unselected'}"
+                src="${src}"
+                alt="${escHtml(paper.title)}"
+                data-fid="${f.id}"
+                data-uuid="${blockUuid}"
+                onclick="toggleFigureSelection(this, ${f.id}, '${blockUuid}')"
+                onerror="this.style.display='none'">`
+        : '';
+    }).join('');
+
+    return `
+      <div class="fig-picker-paper">
+        <div class="fig-picker-paper-heading">
+          ${sourceBadge}
+          <a href="${doiHref}" target="_blank">${escHtml(paper.title || 'Unknown')}</a>
+          <span class="fig-picker-paper-year">${paper.year || ''}</span>
+        </div>
+        <div class="fig-picker-thumbs">${thumbs}</div>
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="fig-picker-toolbar">
+      <span class="fig-picker-count" id="picker-count-${blockUuid}">
+        ${selCount} selected
+      </span>
+      <div class="fig-picker-actions">
+        <button class="btn btn-outline-secondary btn-sm py-0"
+                style="font-size:12px"
+                onclick="document.getElementById('picker-${blockUuid}').style.display='none'">
+          CANCEL
+        </button>
+        <button class="btn btn-primary btn-sm py-0"
+                style="font-size:12px"
+                onclick="applyFigureSelection('${blockUuid}')">
+          APPLY
+        </button>
+      </div>
+    </div>
+    <div class="fig-picker-pool">${groups}</div>`;
+}
+
+function toggleFigureSelection(imgEl, figId, blockUuid) {
+  const isSel = imgEl.classList.contains('selected');
+  imgEl.classList.toggle('selected', !isSel);
+  imgEl.classList.toggle('unselected', isSel);
+
+  // Update count badge
+  const panel = document.getElementById('picker-' + blockUuid);
+  if (panel) {
+    const allThumbs = panel.querySelectorAll('.fig-picker-thumb');
+    const selCount = [...allThumbs].filter(t => t.classList.contains('selected')).length;
+    const countEl = panel.querySelector(`#picker-count-${blockUuid}`);
+    if (countEl) countEl.textContent = `${selCount} selected`;
+  }
+}
+
+async function applyFigureSelection(blockUuid) {
+  const panel = document.getElementById('picker-' + blockUuid);
+  if (!panel) return;
+
+  // Collect selected figure IDs in DOM order (which matches pool order)
+  const selectedIds = [...panel.querySelectorAll('.fig-picker-thumb.selected')]
+    .map(el => Number(el.dataset.fid));
+
+  if (selectedIds.length === 0) {
+    showStatus('Select at least one figure before applying.', 'error');
+    return;
+  }
+
+  const applyBtn = panel.querySelector('button.btn-primary');
+  if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = '…'; }
+
+  try {
+    const data = await api(`/narratives/${encodeURIComponent(VT)}/update-figures/`, {
+      figure_ids: selectedIds,
+    });
+    if (data.error) {
+      showStatus('Update failed: ' + data.error, 'error');
+      if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'APPLY'; }
+      return;
+    }
+    // Update block in local state
+    const idx = blocks.findIndex(b => b.uuid === blockUuid);
+    if (idx !== -1) blocks[idx] = data.block;
+
+    // Surgical DOM patch — only update this card's body + reset picker,
+    // leaving text areas, drift accordions, and Plotly charts untouched.
+    const card = document.querySelector(`.block-card[data-uuid="${blockUuid}"]`);
+    if (card) {
+      // Remove existing block-body and picker panel, inject fresh ones
+      card.querySelectorAll('.block-body, .fig-picker-panel').forEach(el => el.remove());
+      card.insertAdjacentHTML('beforeend', _figuresBlockBodyHTML(data.block));
+    }
+    hideStatus();
+  } catch (err) {
+    showStatus('Update failed: ' + err, 'error');
+    if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'APPLY'; }
+  }
+}
+
+function renderChart(containerId, spec) {
+  const el = document.getElementById(containerId);
+  if (!el || !spec) return;
+  try {
+    const layout = Object.assign({
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor:  'rgba(0,0,0,0)',
+      font: { color: '#475569', family: "'JetBrains Mono',monospace", size: 12 },
+      margin: { l: 50, r: 20, t: 20, b: 40 },
+    }, spec.layout || {});
+    Plotly.newPlot(containerId, spec.data || [], layout, { responsive: true });
+  } catch(e) {
+    el.innerHTML = '<p style="color:#991b1b;padding:1rem;font-size:.75rem">Chart render error</p>';
+  }
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function accPanels(html) { return html; }  // passthrough — panels already built as string
+
+function toggleDriftPanel(bodyId, btn) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  const chevron = btn.querySelector('[data-chevron]');
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(90deg)' : '';
+}
+
+function getRelPath(absPath) {
+  // Strip everything up to and including 'media/' for Django media URL
+  const idx = absPath.indexOf('media/');
+  return idx !== -1 ? absPath.slice(idx + 6) : absPath;
+}
+</script>
+
+<!-- Platform badges reuse from explore -->
+<style>
+.platform-badge { display:inline-block;font-size:12px;letter-spacing:1px;padding:1px 6px;border-radius:2px;margin-right:.3rem;text-transform:uppercase;vertical-align:middle; }
+.platform-kaggle       { background:var(--repo-bg);color:var(--repo);border:1px solid var(--repo-border); }
+.platform-github       { background:var(--academic-bg);color:var(--academic);border:1px solid var(--academic-border); }
+.platform-observablehq { background:var(--bridge-bg);color:var(--bridge);border:1px solid var(--bridge-border); }
+.nb-stars { color:var(--muted);font-size:12px; }
+</style>
+{% endblock %}

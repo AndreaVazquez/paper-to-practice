@@ -1,0 +1,906 @@
+{% extends "ui/base.html" %}
+{% block title %}{{ vis_type }} — Explore{% endblock %}
+
+{% block extra_head %}
+<style>
+  .explore-shell {
+    padding-bottom: 28px;
+  }
+
+  .explore-hero {
+    padding: 18px 20px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9)),
+      linear-gradient(135deg, rgba(3, 105, 161, 0.04), rgba(124, 58, 237, 0.03));
+  }
+
+  .explore-kicker {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .explore-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.9rem, 3vw, 2.8rem);
+    line-height: 0.95;
+    color: var(--heading);
+    margin: 0;
+  }
+
+  .explore-copy {
+    max-width: 68ch;
+    margin-top: 10px;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .summary-card {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .summary-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: var(--heading);
+    margin-bottom: 6px;
+  }
+
+  .summary-note {
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--text-dim);
+  }
+
+  .explore-panel {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .explore-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .explore-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: var(--surface2);
+    color: var(--text-dim);
+    padding: 7px 11px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .explore-title-sm {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin: 0 0 6px;
+  }
+
+  .explore-copy-sm {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    max-width: 58ch;
+  }
+
+  .viz-wrap {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.92));
+    padding: 10px;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .figure-card {
+    display: block;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.86);
+    color: inherit;
+  }
+
+  .figure-card:hover {
+    text-decoration: none;
+    border-color: rgba(3, 105, 161, 0.35);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
+  }
+
+  .figure-preview {
+    width: 100%;
+    aspect-ratio: 1.25 / 1;
+    object-fit: cover;
+    display: block;
+    background: var(--surface2);
+  }
+
+  .figure-meta {
+    padding: 10px 10px 12px;
+  }
+
+  .figure-year {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .figure-paper {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text);
+  }
+
+  .repo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .repo-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .repo-results {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .repo-search {
+    max-width: 280px;
+  }
+
+  .repo-card {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+    padding: 14px;
+  }
+
+  .repo-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .repo-badge {
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    color: var(--text-dim);
+    background: var(--surface2);
+  }
+
+  .repo-title {
+    font-size: 0.92rem;
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--heading);
+  }
+
+  .repo-meta {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .repo-libs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .lib-pill {
+    border-radius: 999px;
+    padding: 3px 8px;
+    background: rgba(3, 105, 161, 0.08);
+    color: var(--academic);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  .library-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .library-chip {
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--bridge);
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  .encoding-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .encoding-note-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .encoding-note-card {
+    border-radius: 14px;
+    padding: 12px 13px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .encoding-note-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .encoding-note-theme {
+    font-size: 0.74rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .encoding-note-text {
+    font-size: 0.76rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .encoding-note-meta {
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  @media (max-width: 1199px) {
+    .summary-grid,
+    .gallery-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 991px) {
+    .repo-grid,
+    .summary-grid,
+    .gallery-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .encoding-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .repo-grid,
+    .summary-grid,
+    .gallery-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .explore-hero,
+    .explore-panel {
+      padding: 16px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="explore-shell">
+  <section class="card explore-hero mb-4">
+    <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+      <div>
+        <div class="explore-kicker">Visualization Profile</div>
+        <h1 class="explore-title">{{ vis_type }}</h1>
+        <div class="explore-copy">
+          This page summarizes how {{ vis_type|lower }} appears in IEEE VIS papers, how it shows up in repositories, and how strongly it drifts once translated into practice.
+        </div>
+      </div>
+      <select class="form-select form-select-sm" style="max-width:240px"
+              onchange="window.location='/explore/'+encodeURIComponent(this.value)+'/'">
+        <option value="">Browse another type…</option>
+        {% for t in all_vis_types %}
+          <option value="{{ t }}"{% if t == vis_type %} selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-label">Academic Figures</div>
+        <div class="summary-value" style="color:var(--academic)">{{ total_figures_for_type }}</div>
+        <div class="summary-note">{{ total_papers_for_type }} papers contain this form.</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Repository Artifacts</div>
+        <div class="summary-value" style="color:var(--repo)">{{ total_artifacts_for_type }}</div>
+        <div class="summary-note">Artifacts whose detected chart types include {{ vis_type|lower }}.</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Reviewed Trace Candidates</div>
+        <div class="summary-value" style="color:var(--bridge)">{{ reviewed_trace_candidates_for_type }}</div>
+        <div class="summary-note">{{ total_traces_for_type }} confirmed valid · {{ total_invalid_traces_for_type }} rejected as invalid.</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Confirmed Valid Traces</div>
+        <div class="summary-value" style="color:var(--bridge)">{{ total_traces_for_type }}</div>
+        <div class="summary-note">
+          {{ confirmed_trace_share_for_type }}% of reviewed trace candidates remained valid after review.
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Main Invalid Review Pattern</div>
+        <div class="summary-value" style="color:#ef4444">{{ dominant_invalid_label_for_type }}</div>
+        <div class="summary-note">{{ dominant_invalid_share_for_type }}% of invalid reviews. {{ dominant_invalid_summary_for_type }}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card explore-panel h-100">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Academic Timeline</div>
+            <h2 class="explore-title-sm">How the type evolves across the archive</h2>
+            <div class="explore-copy-sm">
+              Bars show figure volume and the line shows distinct papers per year, which is more useful here than another wall of thumbnails.
+            </div>
+          </div>
+          <div class="explore-chip">Yearly trend</div>
+        </div>
+        <div class="viz-wrap">
+          <div id="timeline-chart" style="height:320px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-6">
+      <div class="card explore-panel h-100">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Repository Snapshot</div>
+            <h2 class="explore-title-sm">Where it appears in practice</h2>
+            <div class="explore-copy-sm">
+              Platform counts show where this type is published, and the library tags expose the tooling that most often produces it.
+            </div>
+          </div>
+          <div class="explore-chip">Platform + libraries</div>
+        </div>
+        <div class="viz-wrap mb-3">
+          <div id="platform-chart" style="height:250px;"></div>
+        </div>
+        <div class="library-list">
+          {% for lib in library_rows %}
+          <span class="library-chip">{{ lib.name }} · {{ lib.count }}</span>
+          {% empty %}
+          <span class="summary-note">No library metadata available yet.</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="card explore-panel h-100">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Drift Profile</div>
+            <h2 class="explore-title-sm">How the type changes across traces</h2>
+            <div class="explore-copy-sm">
+              Drift is computed only over confirmed valid traces. Average drift is {{ avg_drift_for_type|default:"n/a" }} on a 0 to 6 scale, and {{ major_share_for_type }}% of all drift dimension labels are major.
+            </div>
+          </div>
+          <div class="explore-chip">{{ drift_annotations_for_type }} annotated confirmed traces</div>
+        </div>
+        <div class="viz-wrap">
+          <div id="drift-chart" style="height:250px;"></div>
+          <div class="summary-note" style="margin-top:.55rem">
+            0 means no drift in any dimension. 6 means major drift in encoding, interaction, and task.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card explore-panel">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Drift Justifications</div>
+            <h2 class="explore-title-sm">How {{ vis_type|lower }} changes in encoding, interaction, and task</h2>
+            <div class="explore-copy-sm">
+              This qualitative slice brings the three drift-note layers together for {{ vis_type|lower }}, so you can compare changed form, lost interaction, and shifted purpose from the same page.
+            </div>
+          </div>
+          <a href="/drift-justifications/?vis_type={{ vis_type|urlencode }}" class="explore-chip">
+            {{ drift_justification_total_for_type }} notes
+          </a>
+        </div>
+        <div class="encoding-grid">
+          <div class="viz-wrap">
+            <div id="drift-justification-chart" style="height:280px;"></div>
+            <div class="summary-note" style="margin-top:.55rem">
+              Bars show how many qualitative notes exist for each drift dimension, split by severity.
+            </div>
+          </div>
+          <div class="encoding-note-list">
+            {% for panel in drift_justification_panels_for_type %}
+              <div class="encoding-note-card">
+                <div class="encoding-note-topline">
+                  <div class="encoding-note-theme">{{ panel.dimension_label }}</div>
+                  <a href="/drift-justifications/?dimension={{ panel.dimension|urlencode }}&vis_type={{ vis_type|urlencode }}" class="summary-note">{{ panel.total }} notes</a>
+                </div>
+                {% if panel.top_themes %}
+                  <div class="encoding-note-text">
+                    {{ panel.top_themes.0.label }}{% if panel.top_themes.1 %} · {{ panel.top_themes.1.label }}{% endif %}
+                  </div>
+                {% else %}
+                  <div class="encoding-note-text">No qualitative notes yet.</div>
+                {% endif %}
+                <div class="encoding-note-meta">
+                  {% for row in panel.entries %}
+                    <span class="drift-{{ row.severity }}">{{ row.severity_label }}</span>
+                    {{ row.note_short }}
+                    <br>
+                  {% empty %}
+                    No notes available for this dimension.
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="library-list">
+          {% for panel in drift_justification_panels_for_type %}
+            {% for row in panel.top_themes %}
+          <a class="library-chip" href="/drift-justifications/?dimension={{ panel.dimension|urlencode }}&vis_type={{ vis_type|urlencode }}&theme={{ row.id|urlencode }}">
+            {{ panel.dimension_label }} · {{ row.label }} · {{ row.share }}%
+          </a>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card explore-panel">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Academic Examples</div>
+            <h2 class="explore-title-sm">Representative figures from IEEE VIS papers</h2>
+            <div class="explore-copy-sm">
+              A smaller, cleaner gallery gives visual context without turning the page into a contact sheet.
+            </div>
+          </div>
+          <div class="explore-chip">{{ figures|length }} shown</div>
+        </div>
+
+        {% if figures %}
+        <div class="gallery-grid">
+          {% for fig in figures %}
+          <a class="figure-card"
+             href="{% if fig.paper.pdf_url %}{{ fig.paper.pdf_url }}{% elif fig.paper.doi %}https://doi.org/{{ fig.paper.doi }}{% else %}#{% endif %}"
+             {% if fig.paper.pdf_url or fig.paper.doi %}target="_blank"{% endif %}
+             title="{{ fig.paper.title }} ({{ fig.paper.year }})">
+            <img src="{{ fig.image_url }}" class="figure-preview" alt="{{ fig.vis_type }}" onerror="this.style.display='none'">
+            <div class="figure-meta">
+              <div class="figure-year">{{ fig.paper.year|default:"Unknown year" }}</div>
+              <div class="figure-paper">{{ fig.paper.title|truncatechars:68 }}</div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="summary-note">No figures classified as {{ vis_type }} yet.</div>
+        {% endif %}
+        </div>
+      </div>
+    </div>
+
+  <div class="row g-3">
+    <div class="col-xl-7">
+      <div class="card explore-panel h-100">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Repository Matches</div>
+            <h2 class="explore-title-sm">Repositories currently using {{ vis_type|lower }}</h2>
+            <div class="explore-copy-sm">
+              The list is now card-based so platform, stars, author, and library context are easier to scan.
+            </div>
+          </div>
+          <div class="explore-chip">{{ artifacts|length }} featured</div>
+        </div>
+
+        {% if artifacts %}
+        <div class="repo-toolbar">
+          <div class="repo-results"><span id="repo-results-count">{{ artifacts|length }}</span> visible</div>
+          <input id="repo-search-input" class="form-control form-control-sm repo-search" type="search" placeholder="Search title, author, platform, library…">
+        </div>
+        <div class="repo-grid">
+          {% for art in artifacts %}
+          <div class="repo-card"
+               data-repo-search="{{ art.source.title|lower }} {{ art.source.author|default:''|lower }} {{ art.source.platform|lower }} {{ art.source.language|default:''|lower }} {% with libs=art.get_detected_libraries %}{% if libs %}{{ libs|join:' '|lower }}{% endif %}{% endwith %}">
+            <div class="repo-topline">
+              <span class="repo-badge">{{ art.source.platform }}</span>
+              {% if art.source.stars %}
+              <span class="repo-badge">{{ art.source.stars }} ★</span>
+              {% endif %}
+            </div>
+            <a href="{{ art.source.url }}" target="_blank" class="repo-title">{{ art.source.title|truncatechars:78 }}</a>
+            <div class="repo-meta">
+              {{ art.source.author|default:"Unknown author" }}
+              {% if art.source.language %} · {{ art.source.language }}{% endif %}
+              {% if art.source.last_updated %} · updated {{ art.source.last_updated }}{% endif %}
+            </div>
+            {% with libs=art.get_detected_libraries %}
+              {% if libs %}
+              <div class="repo-libs">
+                {% for lib in libs|slice:":4" %}
+                <span class="lib-pill">{{ lib }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+            {% endwith %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="summary-note">No repository matches for {{ vis_type }} yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card explore-panel h-100">
+        <div class="explore-head">
+          <div>
+            <div class="section-label">Narrative</div>
+            <h2 class="explore-title-sm">Design anchor narrative</h2>
+          </div>
+          <a href="/narratives/{{ vis_type|urlencode }}/author/" class="explore-chip">
+            {% if narrative %}Edit narrative{% else %}Create narrative{% endif %}
+          </a>
+        </div>
+        {% if narrative %}
+        <div class="narrative-card mb-0">
+          <p style="font-size:.82rem;color:var(--text);margin-bottom:0">{{ narrative.get_text_excerpt }}</p>
+          <div class="narrative-meta">
+            {{ narrative.model_used }} · {{ narrative.generated_at|date:"Y-m-d" }} · {{ narrative.status }}
+            · <a href="/narratives/{{ vis_type|urlencode }}/" style="color:var(--academic)">Read full narrative ↗</a>
+          </div>
+        </div>
+        {% else %}
+        <div class="summary-note">
+          No narrative for {{ vis_type }} yet.
+          <a href="/narratives/{{ vis_type|urlencode }}/author/" style="color:var(--bridge)">Author one now ↗</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const driftData = {{ drift_data|safe }};
+const yearSeries = {{ year_series|safe }};
+const platformRows = {{ platform_rows|safe }};
+const driftJustificationRows = {{ drift_dimension_rows_for_type|safe }};
+
+function getCssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+const COLORS = {
+  academic: getCssVar('--academic'),
+  repo: getCssVar('--repo'),
+  bridge: getCssVar('--bridge'),
+  none: '#10b981',
+  minor: '#f59e0b',
+  major: '#ef4444',
+};
+
+function axisBase(axis, extra = {}) {
+  return {
+    ...axis,
+    zeroline: false,
+    linecolor: 'rgba(148, 163, 184, 0.5)',
+    gridcolor: 'rgba(226, 232, 240, 0.9)',
+    tickfont: { color: '#475569', size: 11 },
+    ...extra,
+  };
+}
+
+function layoutBase(extra = {}) {
+  const T = getPlotlyTheme();
+  return {
+    ...T,
+    margin: { l: 54, r: 20, t: 8, b: 40 },
+    xaxis: axisBase(T.xaxis),
+    yaxis: axisBase(T.yaxis),
+    legend: { ...T.legend, orientation: 'h', x: 0, y: -0.16 },
+    hoverlabel: {
+      bgcolor: '#ffffff',
+      bordercolor: 'rgba(148, 163, 184, 0.3)',
+      font: { family: "'JetBrains Mono', monospace", color: '#0f172a', size: 11 },
+    },
+    ...extra,
+  };
+}
+
+function renderTimelineChart() {
+  Plotly.react(
+    'timeline-chart',
+    [
+      {
+        type: 'bar',
+        name: 'Figures',
+        x: yearSeries.map(row => row.year),
+        y: yearSeries.map(row => row.figures),
+        marker: { color: 'rgba(3, 105, 161, 0.14)', line: { color: COLORS.academic, width: 1.2 } },
+        hovertemplate: '<b>%{x}</b><br>Figures: %{y}<extra></extra>',
+      },
+      {
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Papers',
+        x: yearSeries.map(row => row.year),
+        y: yearSeries.map(row => row.papers),
+        line: { color: COLORS.bridge, width: 3, shape: 'spline', smoothing: 0.45 },
+        marker: { size: 6, color: '#ffffff', line: { color: COLORS.bridge, width: 2 } },
+        hovertemplate: '<b>%{x}</b><br>Papers: %{y}<extra></extra>',
+      },
+    ],
+    layoutBase({
+      height: 320,
+      xaxis: axisBase(getPlotlyTheme().xaxis, {
+        tickmode: 'array',
+        tickvals: yearSeries.filter((_, index) => index % 4 === 0).map(row => row.year),
+      }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { title: 'Count' }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderPlatformChart() {
+  const rows = [...platformRows].sort((a, b) => b.count - a.count).reverse();
+  const platformColors = {
+    github: COLORS.academic,
+    kaggle: COLORS.bridge,
+    observablehq: COLORS.repo,
+  };
+
+  Plotly.react(
+    'platform-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        y: rows.map(row => row.label),
+        x: rows.map(row => row.count),
+        text: rows.map(row => row.count),
+        textposition: 'outside',
+        cliponaxis: false,
+        marker: {
+          color: rows.map(row => platformColors[row.platform] || COLORS.repo),
+          line: { width: 0 },
+        },
+        hovertemplate: '<b>%{y}</b><br>%{x} artifacts<extra></extra>',
+      },
+    ],
+    layoutBase({
+      height: 240,
+      margin: { l: 110, r: 24, t: 8, b: 28 },
+      showlegend: false,
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: '' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { automargin: true }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderDriftJustificationChart() {
+  const rows = [...driftJustificationRows];
+  Plotly.react(
+    'drift-justification-chart',
+    [
+      {
+        type: 'bar',
+        name: 'None',
+        x: rows.map(row => row.label),
+        y: rows.map(row => row.none),
+        marker: { color: COLORS.none },
+        hovertemplate: '<b>%{x}</b><br>None: %{y} notes<extra></extra>',
+      },
+      {
+        type: 'bar',
+        name: 'Minor',
+        x: rows.map(row => row.label),
+        y: rows.map(row => row.minor),
+        marker: { color: COLORS.minor },
+        hovertemplate: '<b>%{x}</b><br>Minor: %{y} notes<extra></extra>',
+      },
+      {
+        type: 'bar',
+        name: 'Major',
+        x: rows.map(row => row.label),
+        y: rows.map(row => row.major),
+        marker: { color: COLORS.major },
+        customdata: rows.map(row => row.total),
+        hovertemplate:
+          '<b>%{x}</b><br>' +
+          'Major: %{y} notes<br>' +
+          'Total: %{customdata} notes<extra></extra>',
+      },
+    ],
+    layoutBase({
+      barmode: 'stack',
+      height: 280,
+      margin: { l: 54, r: 20, t: 8, b: 26 },
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: '' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { title: 'Note count' }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderDriftChart() {
+  const dims = ['encoding', 'interaction', 'task'];
+  const labels = ['Encoding', 'Interaction', 'Task'];
+  const totals = dims.map(dim => ['none', 'minor', 'major'].reduce((sum, level) => sum + (driftData[dim]?.[level] || 0), 0));
+
+  Plotly.react(
+    'drift-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'None',
+        y: labels,
+        x: dims.map((dim, index) => totals[index] ? ((driftData[dim]?.none || 0) / totals[index]) * 100 : 0),
+        marker: { color: COLORS.none },
+        customdata: dims.map(dim => driftData[dim]?.none || 0),
+        hovertemplate: '<b>%{y}</b><br>None: %{customdata} traces (%{x:.1f}%)<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Minor',
+        y: labels,
+        x: dims.map((dim, index) => totals[index] ? ((driftData[dim]?.minor || 0) / totals[index]) * 100 : 0),
+        marker: { color: COLORS.minor },
+        customdata: dims.map(dim => driftData[dim]?.minor || 0),
+        hovertemplate: '<b>%{y}</b><br>Minor: %{customdata} traces (%{x:.1f}%)<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Major',
+        y: labels,
+        x: dims.map((dim, index) => totals[index] ? ((driftData[dim]?.major || 0) / totals[index]) * 100 : 0),
+        marker: { color: COLORS.major },
+        customdata: dims.map(dim => driftData[dim]?.major || 0),
+        hovertemplate: '<b>%{y}</b><br>Major: %{customdata} traces (%{x:.1f}%)<extra></extra>',
+      },
+    ],
+    layoutBase({
+      barmode: 'stack',
+      height: 280,
+      margin: { l: 92, r: 20, t: 30, b: 26 },
+      legend: {
+        ...getPlotlyTheme().legend,
+        orientation: 'h',
+        x: 0.5,
+        xanchor: 'center',
+        y: 1.18,
+        yanchor: 'bottom',
+        traceorder: 'normal',
+      },
+      xaxis: axisBase(getPlotlyTheme().xaxis, {
+        title: '',
+        range: [0, 100],
+        ticksuffix: '%',
+      }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { automargin: true }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderTimelineChart();
+  renderPlatformChart();
+  renderDriftChart();
+  renderDriftJustificationChart();
+
+  const searchInput = document.getElementById('repo-search-input');
+  const cards = Array.from(document.querySelectorAll('.repo-card[data-repo-search]'));
+  const results = document.getElementById('repo-results-count');
+
+  if (searchInput && cards.length) {
+    const updateRepoFilter = () => {
+      const query = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+      cards.forEach(card => {
+        const haystack = card.dataset.repoSearch || '';
+        const match = !query || haystack.includes(query);
+        card.style.display = match ? '' : 'none';
+        if (match) visible += 1;
+      });
+      if (results) results.textContent = visible;
+    };
+
+    searchInput.addEventListener('input', updateRepoFilter);
+    updateRepoFilter();
+  }
+});
+</script>
+{% endblock %}

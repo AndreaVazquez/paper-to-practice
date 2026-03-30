@@ -1,0 +1,433 @@
+{% extends "ui/base.html" %}
+{% load ui_extras %}
+{% block title %}Narratives Gallery — From Paper to Practice{% endblock %}
+{% block nav_narratives %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .narratives-shell {
+    padding-bottom: 28px;
+  }
+
+  .narratives-topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .narratives-kicker {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .narratives-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    line-height: 0.95;
+    color: var(--heading);
+    margin: 0 0 6px;
+  }
+
+  .narratives-copy {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .narratives-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .meta-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--text-dim);
+    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .narrative-gallery-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.95));
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    height: 100%;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .narrative-gallery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+    border-color: rgba(15, 118, 110, 0.22);
+  }
+
+  .narrative-gallery-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.78), rgba(15, 118, 110, 0.34));
+  }
+
+  .gallery-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 18px;
+  }
+
+  .gallery-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .gallery-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 118, 110, 0.28);
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--bridge);
+    padding: 6px 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .gallery-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 118, 110, 0.24);
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--bridge);
+    padding: 5px 10px;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .gallery-excerpt {
+    flex: 1;
+    min-height: 88px;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .gallery-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(248, 250, 252, 0.88);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+  }
+
+  .gallery-metrics > div + div {
+    border-left: 1px solid rgba(148, 163, 184, 0.16);
+    padding-left: 12px;
+  }
+
+  .gallery-metric-label {
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .gallery-metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.14rem;
+    color: var(--heading);
+    line-height: 1;
+  }
+
+  .gallery-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+  }
+
+  .gallery-date {
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .gallery-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn-soft {
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .btn-soft-read {
+    background: rgba(3, 105, 161, 0.08);
+    color: var(--academic);
+    border: 1px solid rgba(3, 105, 161, 0.24);
+  }
+
+  .btn-soft-edit {
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--text-dim);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+  }
+
+  .btn-soft-delete {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+    min-width: 32px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .narratives-empty {
+    max-width: 760px;
+    margin: 64px auto 0;
+    text-align: center;
+    padding: 28px 30px;
+    border-radius: 22px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .narratives-empty-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    color: var(--heading);
+    margin-bottom: 10px;
+  }
+
+  .narratives-empty-copy {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  @media (max-width: 1399px) {
+    .gallery-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 991px) {
+    .narratives-topbar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .narratives-actions {
+      justify-content: flex-start;
+    }
+
+    .gallery-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .gallery-metrics {
+      grid-template-columns: 1fr;
+    }
+
+    .gallery-metrics > div + div {
+      border-left: 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+      padding-left: 0;
+      padding-top: 10px;
+    }
+
+    .gallery-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .gallery-actions {
+      justify-content: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="narratives-shell">
+  <div class="narratives-topbar">
+    <div>
+      <div class="narratives-kicker">Narratives</div>
+      <h1 class="narratives-title">Published design documents.</h1>
+      <div class="narratives-copy">Published OER documents · ordered by view count</div>
+    </div>
+    <div class="narratives-actions">
+      <div class="meta-chip">{{ total_published }} published</div>
+      <div class="meta-chip">{{ total_queries }} queries logged</div>
+      <a href="/narratives/new/" class="btn btn-primary btn-sm" style="font-size:12px;letter-spacing:1.5px">
+        + New Narrative
+      </a>
+    </div>
+  </div>
+
+  {% if narrative_cards %}
+  <div class="gallery-grid">
+    {% for card in narrative_cards %}
+    {% with n=card.narrative %}
+    <div id="narrative-card-{{ n.pk }}">
+      <article class="narrative-gallery-card">
+        <div class="gallery-card-body">
+          <div class="gallery-card-top">
+            <a href="/narratives/{{ n.vis_type|urlencode }}/" class="gallery-type">
+              {{ n.vis_type }}
+            </a>
+            <span class="gallery-status">Published</span>
+          </div>
+
+          {% if card.excerpt %}
+          <div class="gallery-excerpt">
+            {{ card.excerpt|truncatechars:220 }}
+          </div>
+          {% endif %}
+
+          <div class="gallery-metrics">
+            <div>
+              <div class="gallery-metric-label">Views</div>
+              <div class="gallery-metric-value">{{ n.view_count }}</div>
+            </div>
+            <div>
+              <div class="gallery-metric-label">Sources</div>
+              <div class="gallery-metric-value">{{ card.trace_count }}</div>
+            </div>
+            <div>
+              <div class="gallery-metric-label">Versions</div>
+              <div class="gallery-metric-value">{{ card.version_count }}</div>
+            </div>
+          </div>
+
+          <div class="gallery-footer">
+            <div class="gallery-date">
+              {{ n.published_at|date:"Y-m-d" }}
+              {% if n.model_used %} · {{ n.model_used }}{% endif %}
+            </div>
+            <div class="gallery-actions">
+              <a href="/narratives/{{ n.vis_type|urlencode }}/{{ n.pk }}/"
+                 class="btn btn-sm btn-soft btn-soft-read">Read</a>
+              <a href="/narratives/{{ n.vis_type|urlencode }}/author/?narrative_id={{ n.pk }}"
+                 class="btn btn-sm btn-soft btn-soft-edit">Edit</a>
+              <button onclick="deleteNarrative('{{ n.vis_type|urlencode }}', {{ n.pk }}, this)"
+                      class="btn btn-sm btn-soft btn-soft-delete"
+                      title="Delete this narrative permanently">×</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="narratives-empty">
+    <div class="narratives-empty-title">No narratives yet</div>
+    <div class="narratives-empty-copy">
+      Start authoring a narrative for a visualization type with enough academic and repository evidence.
+      Bar, Scatter, and Heatmap are the strongest starting points in the current corpus.
+    </div>
+    <div class="d-flex flex-wrap gap-2 justify-content-center">
+      {% for t in "Bar,Scatter,Heatmap,Line,Node-Link"|split:"," %}
+      <a href="/narratives/{{ t }}/author/"
+         class="btn btn-outline-secondary btn-sm" style="font-size:12px;letter-spacing:1.5px">
+        {{ t }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+async function deleteNarrative(visType, narrativeId, btn) {
+  if (!confirm('Delete this narrative from the gallery? Cannot be undone.')) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const resp = await fetch(`/narratives/${visType}/reset-draft/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ narrative_id: narrativeId }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      const card = document.getElementById('narrative-card-' + narrativeId);
+      if (card) {
+        card.style.transition = 'opacity .25s';
+        card.style.opacity = '0';
+        setTimeout(() => card.remove(), 260);
+      }
+    } else {
+      btn.disabled = false;
+      btn.textContent = '×';
+      alert('Delete failed: ' + (data.error || 'unknown error'));
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '×';
+    alert('Delete failed: ' + err);
+  }
+}
+</script>
+{% endblock %}

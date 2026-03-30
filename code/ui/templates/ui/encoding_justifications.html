@@ -1,0 +1,1019 @@
+{% extends "ui/base.html" %}
+{% block title %}Drift Justifications{% endblock %}
+{% block nav_encoding %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .encoding-shell {
+    padding-bottom: 28px;
+  }
+
+  .encoding-hero {
+    padding: 18px 20px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9)),
+      linear-gradient(135deg, rgba(15, 118, 110, 0.05), rgba(3, 105, 161, 0.04));
+  }
+
+  .encoding-kicker {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .encoding-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.9rem, 3vw, 2.9rem);
+    line-height: 0.95;
+    color: var(--heading);
+    margin: 0;
+  }
+
+  .encoding-copy {
+    max-width: 72ch;
+    margin-top: 10px;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .summary-card {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.82);
+  }
+
+  .summary-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: var(--heading);
+    margin-bottom: 6px;
+  }
+
+  .summary-note {
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--text-dim);
+  }
+
+  .encoding-panel {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .encoding-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .encoding-title-sm {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin: 0 0 6px;
+  }
+
+  .encoding-copy-sm {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    max-width: 58ch;
+  }
+
+  .encoding-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: var(--surface2);
+    color: var(--text-dim);
+    padding: 7px 11px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .viz-wrap {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.92));
+    padding: 10px;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr 1fr 1fr 1.1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .theme-card {
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .theme-topline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .theme-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    line-height: 1.05;
+    color: var(--heading);
+  }
+
+  .theme-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .theme-summary,
+  .theme-example {
+    font-size: 0.76rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .dimension-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .dimension-card {
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .dimension-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin-bottom: 10px;
+  }
+
+  .dimension-metric {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  .dimension-theme-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .dimension-theme-chip {
+    border-radius: 999px;
+    padding: 5px 9px;
+    background: rgba(15, 118, 110, 0.08);
+    color: var(--bridge);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  .type-card {
+    display: block;
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+    color: inherit;
+  }
+
+  .type-card:hover {
+    text-decoration: none;
+    border-color: rgba(3, 105, 161, 0.35);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
+  }
+
+  .type-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.02rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin-bottom: 8px;
+  }
+
+  .type-metric {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  .entry-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .entry-card {
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .entry-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .entry-type {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.02;
+    color: var(--heading);
+    margin-bottom: 4px;
+  }
+
+  .entry-theme {
+    font-size: 0.73rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .entry-note {
+    font-size: 0.78rem;
+    line-height: 1.58;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .entry-meta {
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .pagination-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .inspect-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 12px;
+  }
+
+  .scope-card {
+    border-radius: 16px;
+    padding: 16px 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .scope-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .scope-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.05;
+    color: var(--heading);
+    margin: 0 0 6px;
+  }
+
+  .scope-copy {
+    font-size: 0.79rem;
+    line-height: 1.55;
+    color: var(--text-dim);
+    max-width: 72ch;
+  }
+
+  @media (max-width: 1199px) {
+    .summary-grid,
+    .theme-grid,
+    .dimension-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-grid,
+    .type-grid,
+    .inspect-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .summary-grid,
+    .theme-grid,
+    .dimension-grid,
+    .filter-grid,
+    .type-grid,
+    .inspect-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .encoding-hero,
+    .encoding-panel {
+      padding: 16px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="encoding-shell">
+  <section class="card encoding-hero mb-4">
+    <div class="encoding-kicker">Qualitative Analysis</div>
+    <h1 class="encoding-title">Drift justifications</h1>
+    <div class="encoding-copy">
+      This page clusters the free-text drift notes for encoding, interaction, and task, then lets you inspect the original justifications by dimension, visualization type, severity, and keyword.
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-label">{{ analysis.dimension_label }} Slice</div>
+        <div class="summary-value" style="color:var(--bridge)">{{ analysis.total }}</div>
+        <div class="summary-note">Uses all active filters: dimension, vis type, theme, severity, and search.</div>
+      </div>
+      {% for row in dimension_summaries %}
+        <div class="summary-card">
+          <div class="summary-label">{{ row.dimension_label }}</div>
+          <div class="summary-value" style="color:{% if row.dimension == 'encoding' %}var(--academic){% elif row.dimension == 'interaction' %}var(--bridge){% else %}var(--repo){% endif %}">{{ row.total }}</div>
+          <div class="summary-note">
+            {% if row.top_theme %}
+              {{ row.top_theme.label }} · {{ row.top_theme.share }}%
+              <br>
+              {% if selected_vis_type %}
+              Cross-dimension compare for {{ selected_vis_type }} only.
+              {% else %}
+              Cross-dimension compare at corpus scope.
+              {% endif %}
+            {% else %}
+              No notes available yet.
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card encoding-panel">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Filters</div>
+            <h2 class="encoding-title-sm">Explore the note corpus</h2>
+            <div class="encoding-copy-sm">
+              Choose a drift dimension first, then filter the clustered justifications by visualization type, dominant theme, severity, or free text.
+            </div>
+          </div>
+          <a class="encoding-chip" href="/drift-justifications/">Reset</a>
+        </div>
+        <form method="get" class="filter-grid">
+          <div>
+            <label class="summary-label" for="dimension">Dimension</label>
+            <select class="form-select form-select-sm" id="dimension" name="dimension">
+              {% for row in dimension_choices %}
+              <option value="{{ row.id }}"{% if selected_dimension == row.id %} selected{% endif %}>{{ row.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="summary-label" for="vis_type">Vis Type</label>
+            <select class="form-select form-select-sm" id="vis_type" name="vis_type">
+              <option value="">All types</option>
+              {% for vis_type in available_vis_types %}
+              <option value="{{ vis_type }}"{% if selected_vis_type == vis_type %} selected{% endif %}>{{ vis_type }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="summary-label" for="theme">Theme</label>
+            <select class="form-select form-select-sm" id="theme" name="theme">
+              <option value="">All themes</option>
+              {% for theme in theme_choices %}
+              <option value="{{ theme.id }}"{% if selected_theme == theme.id %} selected{% endif %}>{{ theme.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="summary-label" for="severity">Severity</label>
+            <select class="form-select form-select-sm" id="severity" name="severity">
+              <option value="">All severities</option>
+              <option value="major"{% if selected_severity == "major" %} selected{% endif %}>Major</option>
+              <option value="minor"{% if selected_severity == "minor" %} selected{% endif %}>Minor</option>
+              <option value="none"{% if selected_severity == "none" %} selected{% endif %}>None</option>
+            </select>
+          </div>
+          <div>
+            <label class="summary-label" for="q">Search</label>
+            <input class="form-control form-control-sm" id="q" name="q" value="{{ search_query }}" placeholder="Search note, paper, repo, theme…">
+          </div>
+          <div>
+            <button class="btn btn-primary btn-sm w-100" type="submit">Apply</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="scope-card">
+        <div class="scope-topline">
+          <div>
+            <div class="section-label">Cross-Dimension Comparison</div>
+            <h2 class="scope-title">Stable comparison layer</h2>
+            <div class="scope-copy">
+              The next blocks are designed to compare encoding, interaction, and task side by side. To keep that comparison stable, they intentionally use only the current visualization-type scope{% if selected_vis_type %} for <strong>{{ selected_vis_type }}</strong>{% else %} across the full corpus{% endif %}. They do not follow the active dimension, theme, severity, or search filters.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses vis-type scope only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card encoding-panel">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Cross-Dimension Stats</div>
+            <h2 class="encoding-title-sm">Detailed stats for encoding, interaction, and task</h2>
+            <div class="encoding-copy-sm">
+              These cards summarize volume, severity split, and leading themes for each drift dimension at the stable comparison scope.
+            </div>
+          </div>
+          <div class="encoding-chip">Current vis-type scope{% if selected_vis_type %}: {{ selected_vis_type }}{% endif %}</div>
+        </div>
+        <div class="dimension-grid">
+          {% for row in dimension_summaries %}
+          <div class="dimension-card">
+            <div class="dimension-title">{{ row.dimension_label }}</div>
+            <div class="dimension-metric">{{ row.total }} notes</div>
+            <div class="dimension-metric">Major: {{ row.severity_counts.major }} ({{ row.severity_shares.major }}%)</div>
+            <div class="dimension-metric">Minor: {{ row.severity_counts.minor }} ({{ row.severity_shares.minor }}%)</div>
+            <div class="dimension-metric">None: {{ row.severity_counts.none }} ({{ row.severity_shares.none }}%)</div>
+            <div class="dimension-theme-list">
+              {% for theme in row.top_themes %}
+              <a class="dimension-theme-chip" href="/drift-justifications/?dimension={{ row.dimension|urlencode }}{% if selected_vis_type %}&vis_type={{ selected_vis_type|urlencode }}{% endif %}&theme={{ theme.id|urlencode }}">
+                {{ theme.label }} · {{ theme.share }}%
+              </a>
+              {% empty %}
+              <span class="summary-note">No themes available.</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="scope-card">
+        <div class="scope-topline">
+          <div>
+            <div class="section-label">Filtered Slice</div>
+            <h2 class="scope-title">Exploration layer</h2>
+            <div class="scope-copy">
+              Everything below this banner follows the full active filter state: dimension, vis type, theme, severity, and search. This is the section to use when you want targeted inspection rather than cross-dimension comparison.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7">
+      <div class="card encoding-panel h-100">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Filtered Theme Mix</div>
+            <h2 class="encoding-title-sm">Dominant clusters in the current slice</h2>
+            <div class="encoding-copy-sm">
+              Each bar counts {{ analysis.dimension_label|lower }} notes by the dominant qualitative theme assigned from the justification text. This chart follows every active filter.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+        <div class="viz-wrap">
+          <div id="analysis-theme-chart" style="height:320px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card encoding-panel h-100">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Dimension Overview</div>
+            <h2 class="encoding-title-sm">Where each drift layer is most active</h2>
+            <div class="encoding-copy-sm">
+              These cards stay aligned to the current vis-type filter, so you can compare note volume and the leading theme across encoding, interaction, and task.
+            </div>
+          </div>
+          <div class="encoding-chip">Three dimensions</div>
+        </div>
+        <div class="type-grid">
+          {% for row in dimension_summaries %}
+          <a class="type-card" href="/drift-justifications/?dimension={{ row.dimension|urlencode }}{% if selected_vis_type %}&vis_type={{ selected_vis_type|urlencode }}{% endif %}">
+            <div class="type-name">{{ row.dimension_label }}</div>
+            <div class="type-metric">{{ row.total }} notes</div>
+            {% if row.top_theme %}
+            <div class="type-metric">{{ row.top_theme.label }} · {{ row.top_theme.share }}%</div>
+            <div class="type-metric">{{ row.top_theme.summary }}</div>
+            {% else %}
+            <div class="type-metric">No themes available yet.</div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="inspect-grid">
+        <div class="card encoding-panel h-100">
+          <div class="encoding-head">
+            <div>
+            <div class="section-label">Theme Severity</div>
+            <h2 class="encoding-title-sm">How severity varies across themes</h2>
+            <div class="encoding-copy-sm">
+              This chart keeps the current filters and shows whether the active themes are mostly major, minor, or none within the selected drift-note slice.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+          <div class="viz-wrap">
+            <div id="theme-severity-chart" style="height:320px;"></div>
+          </div>
+        </div>
+
+        <div class="card encoding-panel h-100">
+          <div class="encoding-head">
+            <div>
+            <div class="section-label">Platform Mix</div>
+            <h2 class="encoding-title-sm">Where the filtered notes come from</h2>
+            <div class="encoding-copy-sm">
+              The platform mix helps distinguish whether the current slice is dominated by GitHub, Kaggle, or ObservableHQ artifacts.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+          <div class="viz-wrap">
+            <div id="platform-mix-chart" style="height:320px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-7">
+      <div class="card encoding-panel h-100">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Vis-Type Hotspots</div>
+            <h2 class="encoding-title-sm">Which visualization types dominate the current slice</h2>
+            <div class="encoding-copy-sm">
+              This chart is computed from the active drift-note filters, so it reveals which vis types are actually contributing most of the notes you are inspecting right now.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+        <div class="viz-wrap">
+          <div id="vis-type-chart" style="height:360px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="card encoding-panel h-100">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Temporal Distribution</div>
+            <h2 class="encoding-title-sm">When the filtered notes originate</h2>
+            <div class="encoding-copy-sm">
+              The year view helps separate historically older examples from more recent papers in the current drift-note slice.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+        <div class="viz-wrap">
+          <div id="year-chart" style="height:360px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card encoding-panel">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Theme Cards</div>
+            <h2 class="encoding-title-sm">Representative interpretations</h2>
+            <div class="encoding-copy-sm">
+              The cards combine the clustered explanation, its frequency in the current {{ analysis.dimension_label|lower }} slice, and one shortened example note. They follow every active filter.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+        <div class="theme-grid">
+          {% for row in analysis.top_themes %}
+          <div class="theme-card">
+            <div class="theme-topline">
+              <div class="theme-label">{{ row.label }}</div>
+              <div class="theme-count">{{ row.count }} · {{ row.share }}%</div>
+            </div>
+            <div class="theme-summary">{{ row.summary }}</div>
+            {% if row.example %}
+            <div class="theme-example">Example: {{ row.example }}</div>
+            {% endif %}
+          </div>
+          {% empty %}
+          <div class="summary-note">No themes available for the current filters.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="card encoding-panel">
+        <div class="encoding-head">
+          <div>
+            <div class="section-label">Raw Justifications</div>
+            <h2 class="encoding-title-sm">Original {{ analysis.dimension_label|lower }} notes</h2>
+            <div class="encoding-copy-sm">
+              These entries keep the clustered label visible, but they do not rewrite the underlying justification text. Use the filters above to narrow the note set, then page through the raw notes here.
+            </div>
+          </div>
+          <div class="encoding-chip">Uses all active filters</div>
+        </div>
+        <div class="pagination-bar">
+          <div class="summary-note">
+            Filters:
+            {{ analysis.dimension_label }}
+            {% if selected_vis_type %} · {{ selected_vis_type }}{% endif %}
+            {% if selected_theme %} · theme selected{% endif %}
+            {% if selected_severity %} · {{ selected_severity|title }}{% endif %}
+            {% if search_query %} · search "{{ search_query }}"{% endif %}
+          </div>
+          <div class="pagination-links">
+            {% if pagination.has_previous %}
+            <a class="btn btn-outline-secondary btn-sm" href="?{% if pagination.query_string %}{{ pagination.query_string }}&{% endif %}page={{ pagination.previous_page }}">Previous</a>
+            {% endif %}
+            <span class="summary-note">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?{% if pagination.query_string %}{{ pagination.query_string }}&{% endif %}page={{ pagination.next_page }}">Next</a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="entry-list">
+          {% for row in analysis.entries %}
+          <div class="entry-card">
+            <div class="entry-topline">
+              <div>
+                <div class="entry-type">{{ row.vis_type }}</div>
+                <div class="entry-theme">{{ row.primary_theme_label }}</div>
+              </div>
+              <span class="drift-{{ row.severity }}">{{ row.severity_label }}</span>
+            </div>
+            <div class="entry-note">{{ row.note }}</div>
+            <div class="entry-meta">
+              {{ row.paper_year|default:"Unknown year" }} · {{ row.paper_title }}
+              <br>
+              {{ row.platform }} ·
+              <a href="{{ row.artifact_url }}" target="_blank">{{ row.artifact_title }}</a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="summary-note">No {{ analysis.dimension_label|lower }} justifications match the current filters.</div>
+          {% endfor %}
+        </div>
+        {% if pagination.pages > 1 %}
+        <div class="pagination-bar" style="margin-top:14px;margin-bottom:0">
+          <div class="summary-note">Showing {{ pagination.start_index }}–{{ pagination.end_index }} of {{ pagination.total }} notes</div>
+          <div class="pagination-links">
+            {% if pagination.has_previous %}
+            <a class="btn btn-outline-secondary btn-sm" href="?{% if pagination.query_string %}{{ pagination.query_string }}&{% endif %}page={{ pagination.previous_page }}">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?{% if pagination.query_string %}{{ pagination.query_string }}&{% endif %}page={{ pagination.next_page }}">Next</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const analysisThemeRows = {{ analysis_theme_rows|safe }};
+const analysisThemeSeverityRows = {{ analysis_theme_severity_rows|safe }};
+const analysisVisTypeRows = {{ analysis_vis_type_rows|safe }};
+const analysisPlatformRows = {{ analysis_platform_rows|safe }};
+const analysisYearRows = {{ analysis_year_rows|safe }};
+
+function getCssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function axisBase(axis, extra = {}) {
+  return {
+    ...axis,
+    zeroline: false,
+    linecolor: 'rgba(148, 163, 184, 0.5)',
+    gridcolor: 'rgba(226, 232, 240, 0.9)',
+    tickfont: { color: '#475569', size: 11 },
+    ...extra,
+  };
+}
+
+function layoutBase(extra = {}) {
+  const T = getPlotlyTheme();
+  return {
+    ...T,
+    margin: { l: 56, r: 20, t: 8, b: 40 },
+    xaxis: axisBase(T.xaxis),
+    yaxis: axisBase(T.yaxis),
+    legend: { ...T.legend, orientation: 'h', x: 0, y: -0.16 },
+    hoverlabel: {
+      bgcolor: '#ffffff',
+      bordercolor: 'rgba(148, 163, 184, 0.3)',
+      font: { family: "'JetBrains Mono', monospace", color: '#0f172a', size: 11 },
+    },
+    ...extra,
+  };
+}
+
+function renderAnalysisThemeChart() {
+  const rows = [...analysisThemeRows].sort((a, b) => b.count - a.count).reverse();
+  Plotly.react(
+    'analysis-theme-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        y: rows.map(row => row.label),
+        x: rows.map(row => row.count),
+        text: rows.map(row => `${row.count} · ${row.share}%`),
+        textposition: 'outside',
+        cliponaxis: false,
+        marker: {
+          color: rows.map((_, index) => [
+            getCssVar('--bridge'),
+            getCssVar('--academic'),
+            getCssVar('--repo'),
+            '#ef4444',
+            '#f59e0b',
+            '#10b981',
+          ][index % 6]),
+          line: { width: 0 },
+        },
+        hovertemplate: '<b>%{y}</b><br>%{x} notes<extra></extra>',
+      },
+    ],
+    layoutBase({
+      height: 320,
+      margin: { l: 185, r: 36, t: 8, b: 26 },
+      showlegend: false,
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: 'Count' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { automargin: true }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderThemeSeverityChart() {
+  const rows = [...analysisThemeSeverityRows].reverse();
+  Plotly.react(
+    'theme-severity-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'None',
+        y: rows.map(row => row.label),
+        x: rows.map(row => row.none),
+        marker: { color: '#10b981' },
+        hovertemplate: '<b>%{y}</b><br>None: %{x} notes<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Minor',
+        y: rows.map(row => row.label),
+        x: rows.map(row => row.minor),
+        marker: { color: '#f59e0b' },
+        hovertemplate: '<b>%{y}</b><br>Minor: %{x} notes<extra></extra>',
+      },
+      {
+        type: 'bar',
+        orientation: 'h',
+        name: 'Major',
+        y: rows.map(row => row.label),
+        x: rows.map(row => row.major),
+        marker: { color: '#ef4444' },
+        hovertemplate: '<b>%{y}</b><br>Major: %{x} notes<extra></extra>',
+      },
+    ],
+    layoutBase({
+      barmode: 'stack',
+      height: 320,
+      margin: { l: 195, r: 20, t: 8, b: 28 },
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: 'Note count' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { automargin: true }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderVisTypeChart() {
+  const rows = [...analysisVisTypeRows].reverse();
+  Plotly.react(
+    'vis-type-chart',
+    [
+      {
+        type: 'bar',
+        orientation: 'h',
+        y: rows.map(row => row.vis_type),
+        x: rows.map(row => row.count),
+        text: rows.map(row => `${row.count} · ${row.major_share}% major`),
+        textposition: 'outside',
+        cliponaxis: false,
+        marker: {
+          color: rows.map(row => row.major_share),
+          colorscale: [
+            [0, '#10b981'],
+            [0.5, '#f59e0b'],
+            [1, '#ef4444'],
+          ],
+          cmin: 0,
+          cmax: 100,
+          line: { width: 0 },
+        },
+        hovertemplate:
+          '<b>%{y}</b><br>' +
+          '%{x} notes<br>' +
+          'Major share: %{marker.color}%<extra></extra>',
+      },
+    ],
+    layoutBase({
+      height: 360,
+      margin: { l: 130, r: 64, t: 8, b: 28 },
+      showlegend: false,
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: 'Filtered note count' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { automargin: true }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderPlatformMixChart() {
+  const rows = [...analysisPlatformRows];
+  Plotly.react(
+    'platform-mix-chart',
+    [
+      {
+        type: 'pie',
+        hole: 0.6,
+        labels: rows.map(row => row.platform),
+        values: rows.map(row => row.count),
+        textinfo: 'percent',
+        hovertemplate: '<b>%{label}</b><br>%{value} notes<extra></extra>',
+        marker: {
+          colors: ['#0369a1', '#0f766e', '#7c3aed'],
+          line: { color: '#ffffff', width: 2 },
+        },
+      },
+    ],
+    layoutBase({
+      height: 320,
+      margin: { l: 10, r: 10, t: 10, b: 40 },
+      legend: {
+        ...getPlotlyTheme().legend,
+        orientation: 'h',
+        x: 0.5,
+        xanchor: 'center',
+        y: -0.08,
+      },
+      annotations: [
+        {
+          text: `<span style="font-family:Syne,sans-serif;font-size:22px;color:#0f172a;">${rows.reduce((sum, row) => sum + row.count, 0)}</span><br><span style="font-size:11px;color:#475569;letter-spacing:1px;">NOTES</span>`,
+          showarrow: false,
+        },
+      ],
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+function renderYearChart() {
+  Plotly.react(
+    'year-chart',
+    [
+      {
+        type: 'bar',
+        x: analysisYearRows.map(row => row.year),
+        y: analysisYearRows.map(row => row.count),
+        marker: { color: 'rgba(3, 105, 161, 0.16)', line: { color: '#0369a1', width: 1.2 } },
+        hovertemplate: '<b>%{x}</b><br>%{y} notes<extra></extra>',
+      },
+    ],
+    layoutBase({
+      height: 360,
+      margin: { l: 54, r: 20, t: 8, b: 36 },
+      showlegend: false,
+      xaxis: axisBase(getPlotlyTheme().xaxis, { title: 'Paper year' }),
+      yaxis: axisBase(getPlotlyTheme().yaxis, { title: 'Filtered note count' }),
+    }),
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderAnalysisThemeChart();
+  renderThemeSeverityChart();
+  renderVisTypeChart();
+  renderPlatformMixChart();
+  renderYearChart();
+});
+</script>
+{% endblock %}

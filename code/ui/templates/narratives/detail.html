@@ -1,0 +1,15 @@
+{% extends "ui/base.html" %}
+{% block title %}{{ vis_type }} — Narrative{% endblock %}
+{% block nav_narratives %}active{% endblock %}
+
+{% block content %}
+{# This template is never reached for published narratives (FileResponse is returned).
+   It exists as a safety fallback. Redirects to author/ are handled in the view. #}
+<div class="text-center mt-5">
+  <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:2px;color:var(--heading);margin-bottom:.5rem">
+    {{ vis_type|upper }}
+  </div>
+  <p style="color:var(--muted);font-size:.8rem">Redirecting to authoring…</p>
+  <script>window.location.href = '/narratives/{{ vis_type|urlencode }}/author/';</script>
+</div>
+{% endblock %}

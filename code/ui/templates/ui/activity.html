@@ -1,0 +1,593 @@
+{% extends "ui/base.html" %}
+{% load ui_extras %}
+{% block title %}Pipeline Monitor — From Paper to Practice{% endblock %}
+{% block nav_activity %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── Activity monitor — light-first ── */
+  body { background: var(--bg) !important; color: var(--text); }
+  #monitor-root { font-family: 'JetBrains Mono', 'Fira Code', monospace; padding: 0 4px; }
+  .mon-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  .mon-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; letter-spacing:2px; color:var(--heading); }
+  .mon-subtitle { font-size:12px; color:var(--muted); letter-spacing:3px; margin-top:3px; }
+  #connection-status { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; padding:4px 10px; border-radius:3px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); }
+  #connection-status.live { border-color:#5eead4; background:#f0fdfa; color:#0f766e; }
+  #connection-status.warn { border-color:#fcd34d; background:#fffbeb; color:#92400e; }
+  .mon-section-label { font-size:12px; color:var(--muted); letter-spacing:3px; margin-bottom:12px; text-transform:uppercase; }
+  .flow-card { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .flow-arm-label { font-size:12px; letter-spacing:3px; margin-bottom:10px; font-weight:600; }
+  .flow-arm-label.academic { color:#0369a1; }
+  .flow-arm-label.repo     { color:#7c3aed; }
+  .flow-arm-label.bridge   { color:#0f766e; }
+  .flow-row { display:flex; align-items:center; gap:0; flex-wrap:wrap; }
+  .flow-arrow { font-size:13px; padding:0 5px; color:#94a3b8; flex-shrink:0; }
+  .agent-node { border:1px solid var(--border); border-radius:6px; padding:10px 14px; min-width:128px; background:var(--surface2); transition:border-color .3s,background .3s,box-shadow .3s; }
+  .agent-node.academic { --arm-border:#0369a1; --arm-accent:#0369a1; --arm-bg:#e0f2fe; }
+  .agent-node.repo     { --arm-border:#7c3aed; --arm-accent:#7c3aed; --arm-bg:#ede9fe; }
+  .agent-node.bridge   { --arm-border:#0f766e; --arm-accent:#0f766e; --arm-bg:#f0fdfa; }
+  .agent-node.running { border-color:var(--arm-border); background:var(--arm-bg); }
+  .agent-node.done    { border-color:var(--arm-border); background:var(--arm-bg); box-shadow:0 0 12px color-mix(in srgb,var(--arm-border) 25%,transparent); }
+  .agent-node.error   { border-color:#dc2626; background:#fef2f2; }
+  .node-status-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .node-status-label { font-size:12px; letter-spacing:1.5px; color:var(--muted); }
+  .agent-node.running .node-status-label { color:#d97706; }
+  .agent-node.done    .node-status-label { color:#16a34a; }
+  .agent-node.error   .node-status-label { color:#dc2626; }
+  .node-name { font-size:12px; font-weight:600; color:var(--text-dim); line-height:1.35; letter-spacing:.5px; text-transform:uppercase; }
+  .agent-node.running .node-name, .agent-node.done .node-name { color:var(--arm-accent); }
+  .agent-node.error .node-name { color:#dc2626; }
+  .node-progress-bar { margin-top:7px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .node-progress-fill { height:100%; background:var(--arm-accent,#0f766e); border-radius:2px; width:0%; transition:width .3s; }
+  .node-progress-text { font-size:12px; color:var(--muted); margin-top:3px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; background:#94a3b8; }
+  .dot-running { background:#f59e0b; animation:pulse 1.4s ease-in-out infinite; }
+  .dot-done    { background:#22c55e; }
+  .dot-error   { background:#ef4444; }
+  .dot-skipped { background:#3b82f6; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+  .mid-zone { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .mon-card { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .agent-row { display:grid; grid-template-columns:12px 140px 1fr auto; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--surface2); font-size:12px; }
+  .agent-row:last-child { border-bottom:none; }
+  .agent-row-name { font-weight:600; color:var(--text-dim); }
+  .agent-row-name.academic { color:#0369a1; }
+  .agent-row-name.repo     { color:#7c3aed; }
+  .agent-row-name.bridge   { color:#0f766e; }
+  .agent-row-msg { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .run-btn { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:1px; padding:3px 7px; border-radius:3px; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text-dim); transition:all .15s; }
+  .run-btn:hover:not(:disabled) { border-color:#0f766e; color:#0f766e; background:#f0fdfa; }
+  .run-btn:disabled { opacity:.35; cursor:not-allowed; }
+  .log-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .clear-btn { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:1px; padding:2px 8px; border:1px solid var(--border); background:transparent; color:var(--muted); border-radius:3px; cursor:pointer; }
+  .clear-btn:hover { border-color:var(--muted); color:var(--text); }
+  #event-log { height:360px; overflow-y:auto; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+  #event-log::-webkit-scrollbar { width:3px; }
+  #event-log::-webkit-scrollbar-thumb { background:#cbd5e1; }
+  .log-line { display:grid; grid-template-columns:52px 110px 1fr; gap:8px; align-items:start; font-size:12px; animation:fadein .25s ease; line-height:1.5; }
+  @keyframes fadein { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+  .log-ts { color:#94a3b8; }
+  .log-agent { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  .log-msg { color:#334155; }
+  .log-warning .log-msg { color:#92400e; }
+  .log-error   .log-msg { color:#991b1b; }
+  .log-empty { color:#94a3b8; text-align:center; margin:auto; font-size:12px; }
+  #log-count { color:#94a3b8; }
+  #summary-zone { background:#f0fdfa; border:1px solid #5eead4; border-radius:6px; padding:18px 22px; animation:fadein .4s ease; }
+  .summary-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; margin-top:14px; }
+  .summary-stat { text-align:center; }
+  .summary-val { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:#0f766e; line-height:1; }
+  .summary-label { font-size:12px; color:#0f766e; letter-spacing:1px; margin-top:4px; }
+
+  /* ── Row controls ── */
+  .row-controls { display:flex; gap:4px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
+  .row-select {
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.3px;
+    padding:2px 4px; border-radius:3px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text-dim); cursor:pointer; max-width:90px;
+  }
+  .row-input {
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+    padding:2px 4px; border-radius:3px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text-dim); width:56px;
+    -moz-appearance:textfield;
+  }
+  .row-input::-webkit-inner-spin-button,
+  .row-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+  .row-input::placeholder { color:#94a3b8; }
+  .dry-btn  { color:#1d4ed8 !important; border-color:#93c5fd !important; }
+  .toggle-param { color:var(--text-dim); }
+  .toggle-param.active { color:#991b1b !important; border-color:#fca5a5 !important; background:#fef2f2 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="monitor-root">
+
+  <!-- Header -->
+  <div class="mon-header">
+    <div>
+      <div class="mon-title">PIPELINE MONITOR</div>
+      <div class="mon-subtitle">FROM PAPER TO PRACTICE &nbsp;·&nbsp; IEEE VIS 2026</div>
+    </div>
+    <span id="connection-status">CONNECTING…</span>
+  </div>
+
+  <!-- Zone 1: Flow diagram -->
+  <div class="flow-card">
+    <div class="mon-section-label">Pipeline Flow</div>
+
+    <div class="mb-3">
+      <div class="flow-arm-label academic">ARM 1 — ACADEMIC CORPUS</div>
+      <div class="flow-row">
+        {% for cmd in "ingest_papers,fetch_abstracts,download_pdfs,extract_figures,classify_figures,enrich_metadata"|split:"," %}
+          {% if not forloop.first %}<span class="flow-arrow">─▶</span>{% endif %}
+          <div class="agent-node academic" id="node-{{ cmd }}" data-agent="{{ cmd }}">
+            <div class="node-status-row">
+              <span class="status-dot" id="dot-{{ cmd }}"></span>
+              <span class="node-status-label" id="status-label-{{ cmd }}">IDLE</span>
+            </div>
+            <div class="node-name">{{ cmd }}</div>
+            <div id="node-prog-{{ cmd }}" style="display:none">
+              <div class="node-progress-bar"><div class="node-progress-fill" id="node-fill-{{ cmd }}"></div></div>
+              <div class="node-progress-text" id="node-prog-text-{{ cmd }}"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div class="flow-arm-label repo">ARM 2 — REPOSITORY CORPUS &nbsp;<span style="color:var(--muted)">·</span>&nbsp; <span class="flow-arm-label bridge" style="display:inline;margin:0;letter-spacing:inherit">BRIDGE</span></div>
+      <div class="flow-row">
+        {% for cmd in "crawl_repos,detect_chart_types,build_traces,annotate_drift"|split:"," %}
+          {% if not forloop.first %}<span class="flow-arrow">─▶</span>{% endif %}
+          {% if forloop.counter0 < 2 %}
+            <div class="agent-node repo" id="node-{{ cmd }}" data-agent="{{ cmd }}">
+          {% else %}
+            <div class="agent-node bridge" id="node-{{ cmd }}" data-agent="{{ cmd }}">
+          {% endif %}
+              <div class="node-status-row">
+                <span class="status-dot" id="dot-{{ cmd }}"></span>
+                <span class="node-status-label" id="status-label-{{ cmd }}">IDLE</span>
+              </div>
+              <div class="node-name">{{ cmd }}</div>
+              <div id="node-prog-{{ cmd }}" style="display:none">
+                <div class="node-progress-bar"><div class="node-progress-fill" id="node-fill-{{ cmd }}"></div></div>
+                <div class="node-progress-text" id="node-prog-text-{{ cmd }}"></div>
+              </div>
+            </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone 2: Status table + Log -->
+  <div class="mid-zone">
+    <div class="mon-card">
+      <div class="mon-section-label">Agent Status</div>
+      {% for item in agent_rows %}
+        <div class="agent-row" id="row-{{ item.cmd }}">
+          <span class="status-dot" id="row-dot-{{ item.cmd }}"></span>
+          <span class="agent-row-name {{ item.arm }}">{{ item.cmd }}</span>
+          <span class="agent-row-msg" id="row-msg-{{ item.cmd }}">—</span>
+          {% if item.cmd == "ingest_papers" %}
+            <div class="row-controls">
+              <select class="row-select" data-param="source" title="Source">
+                <option value="all">all</option>
+                <option value="visimages">visimages</option>
+                <option value="seed_doi">seed_doi</option>
+                <option value="vis2019">vis2019</option>
+                <option value="vis2020">vis2020</option>
+                <option value="vis2021">vis2021</option>
+                <option value="vis2022">vis2022</option>
+                <option value="vis2023">vis2023</option>
+                <option value="vis2024">vis2024</option>
+                <option value="vis2025">vis2025</option>
+              </select>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "fetch_abstracts" %}
+            <div class="row-controls">
+              <select class="row-select" data-param="source" title="Source">
+                <option value="all">all</option>
+                <option value="visimages">visimages</option>
+                <option value="seed_doi">seed_doi</option>
+                <option value="vis2019">vis2019</option>
+                <option value="vis2020">vis2020</option>
+                <option value="vis2021">vis2021</option>
+                <option value="vis2022">vis2022</option>
+                <option value="vis2023">vis2023</option>
+                <option value="vis2024">vis2024</option>
+                <option value="vis2025">vis2025</option>
+              </select>
+              <input class="row-input" type="number" data-param="limit" placeholder="limit" min="1" title="Limit (optional)">
+              <button class="run-btn toggle-param" data-param="fetch_dois" data-value="" onclick="toggleParam(this)" title="Search for DOIs by title instead of fetching abstracts (targets papers where doi IS NULL)">DOIs</button>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+              <button class="run-btn dry-btn" id="btn-{{ item.cmd }}-dry" onclick="runDryRun('{{ item.cmd }}')">DRY</button>
+            </div>
+          {% elif item.cmd == "download_pdfs" %}
+            <div class="row-controls">
+              <select class="row-select" data-param="source" title="Source">
+                <option value="all">all</option>
+                <option value="seed_doi">seed_doi</option>
+                <option value="vis2019">vis2019</option>
+                <option value="vis2020">vis2020</option>
+                <option value="vis2021">vis2021</option>
+                <option value="vis2022">vis2022</option>
+                <option value="vis2023">vis2023</option>
+                <option value="vis2024">vis2024</option>
+                <option value="vis2025">vis2025</option>
+              </select>
+              <button class="run-btn toggle-param" data-param="reset" data-value="" onclick="toggleParam(this)" title="Re-download already-fetched PDFs">RESET</button>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "extract_figures" %}
+            <div class="row-controls">
+              <input class="row-input" type="number" data-param="limit" placeholder="limit" min="1" title="Max papers to process">
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "classify_figures" %}
+            <div class="row-controls">
+              <input class="row-input" type="number" data-param="limit" placeholder="limit" min="1" title="Max figures to process">
+              <button class="run-btn toggle-param" data-param="reset" data-value="" onclick="toggleParam(this)" title="Reprocess already-classified figures">RESET</button>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "enrich_metadata" %}
+            <div class="row-controls">
+              <input class="row-input" type="number" data-param="limit" placeholder="limit" min="1" title="Max papers to enrich">
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "crawl_repos" %}
+            <div class="row-controls">
+              <select class="row-select" data-param="platform" title="Platform">
+                <option value="all">all</option>
+                <option value="kaggle">kaggle</option>
+                <option value="github">github</option>
+                <option value="observablehq">observablehq</option>
+              </select>
+              <select class="row-select" data-param="keyword_source" title="Keyword source">
+                <option value="both">kw: both</option>
+                <option value="taxonomy">kw: taxonomy</option>
+                <option value="db">kw: db</option>
+              </select>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "detect_chart_types" %}
+            <div class="row-controls">
+              <select class="row-select" data-param="method" title="Detection method">
+                <option value="all">all stages</option>
+                <option value="a_only">pattern only</option>
+                <option value="aplus_only">A+ only</option>
+                <option value="b_only">image only</option>
+              </select>
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% elif item.cmd == "build_traces" %}
+            <div class="row-controls">
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+              <button class="run-btn dry-btn" id="btn-{{ item.cmd }}-dry" onclick="runDryRun('{{ item.cmd }}')">DRY</button>
+            </div>
+          {% elif item.cmd == "annotate_drift" %}
+            <div class="row-controls">
+              <input class="row-input" type="number" data-param="limit" placeholder="limit" min="1" title="Max traces to annotate">
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% else %}
+            <div class="row-controls">
+              <button class="run-btn" id="btn-{{ item.cmd }}" onclick="runCommand('{{ item.cmd }}')">&#9654; RUN</button>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mon-card">
+      <div class="log-header">
+        <div class="mon-section-label" style="margin-bottom:0">
+          Live Event Log
+          <span id="log-count" style="color:#2a3444;margin-left:8px">0 events</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="clear-btn" id="btn-autoscroll" onclick="toggleAutoscroll()" title="Toggle auto-scroll">↓ AUTO</button>
+          <button class="clear-btn" onclick="clearLog()">CLEAR</button>
+        </div>
+      </div>
+      <div id="event-log">
+        <div class="log-empty" id="log-empty">
+          <div style="font-size:22px;margin-bottom:8px">◉</div>
+          Waiting for events…
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone 3: Summary -->
+  <div id="summary-zone" style="display:none">
+    <div class="mon-section-label" style="color:#0f766e">PIPELINE COMPLETE — SUMMARY</div>
+    <div class="summary-grid">
+      {% for item in summary_items %}
+      <div class="summary-stat">
+        <div class="summary-val" id="summary-{{ item.key }}">{{ item.value }}</div>
+        <div class="summary-label">{{ item.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ARM_COLOR_MAP = { academic:'#0369a1', repo:'#7c3aed', bridge:'#0f766e' };
+function ARM_COLORS(arm) {
+  return ARM_COLOR_MAP[arm] || '#475569';
+}
+const AGENT_ARM = {
+  ingest_papers:'academic', fetch_abstracts:'academic', download_pdfs:'academic',
+  extract_figures:'academic', classify_figures:'academic', enrich_metadata:'academic',
+  crawl_repos:'repo', detect_chart_types:'repo',
+  build_traces:'bridge', annotate_drift:'bridge',
+};
+const LOG = document.getElementById('event-log');
+
+// Full in-memory event history — never trimmed, survives SSE reconnects
+const _allEvents = [];
+let _autoscroll = true;
+const MAX_DOM_LINES = 500;  // cap DOM nodes for performance; history is still complete
+
+function makeLine(event) {
+  const color = ARM_COLORS(AGENT_ARM[event.agent]);
+  const ts = (event.timestamp || '').substring(11, 19) || '--:--:--';
+  const line = document.createElement('div');
+  line.className = `log-line log-${event.level || 'info'}`;
+  line.innerHTML =
+    `<span class="log-ts">${ts}</span>` +
+    `<span class="log-agent" style="color:${color}">${esc(event.agent)}</span>` +
+    `<span class="log-msg">${esc(event.message || '')}</span>`;
+  return line;
+}
+
+function appendLog(event) {
+  document.getElementById('log-empty').style.display = 'none';
+  _allEvents.push(event);
+
+  // Update event counter
+  const countEl = document.getElementById('log-count');
+  if (countEl) countEl.textContent = `${_allEvents.length} events`;
+
+  // Add to DOM, trim oldest DOM nodes if over cap
+  LOG.appendChild(makeLine(event));
+  while (LOG.children.length > MAX_DOM_LINES) LOG.removeChild(LOG.firstChild);
+
+  if (_autoscroll) LOG.scrollTop = LOG.scrollHeight;
+}
+
+function toggleAutoscroll() {
+  _autoscroll = !_autoscroll;
+  const btn = document.getElementById('btn-autoscroll');
+  if (btn) {
+    btn.textContent = _autoscroll ? '↓ AUTO' : '↓ PAUSED';
+    btn.style.color = _autoscroll ? '' : '#92400e';
+    btn.style.borderColor = _autoscroll ? '' : '#d97706';
+  }
+  if (_autoscroll) LOG.scrollTop = LOG.scrollHeight;
+}
+
+function clearLog() {
+  _allEvents.length = 0;
+  LOG.innerHTML = '';
+  const countEl = document.getElementById('log-count');
+  if (countEl) countEl.textContent = '0 events';
+}
+
+// Rebuild DOM from full history — useful after a filter or expand action
+function rebuildLog() {
+  LOG.innerHTML = '';
+  const start = Math.max(0, _allEvents.length - MAX_DOM_LINES);
+  for (let i = start; i < _allEvents.length; i++) {
+    LOG.appendChild(makeLine(_allEvents[i]));
+  }
+  if (_autoscroll) LOG.scrollTop = LOG.scrollHeight;
+}
+
+// Stop autoscroll when user manually scrolls up
+LOG.addEventListener('scroll', () => {
+  const atBottom = LOG.scrollHeight - LOG.scrollTop - LOG.clientHeight < 30;
+  if (!atBottom && _autoscroll) {
+    _autoscroll = false;
+    const btn = document.getElementById('btn-autoscroll');
+    if (btn) { btn.textContent = '↓ PAUSED'; btn.style.color='#92400e'; btn.style.borderColor='#d97706'; }
+  } else if (atBottom && !_autoscroll) {
+    _autoscroll = true;
+    const btn = document.getElementById('btn-autoscroll');
+    if (btn) { btn.textContent = '↓ AUTO'; btn.style.color=''; btn.style.borderColor=''; }
+  }
+});
+
+function updateNode(agent, status) {
+  const node = document.getElementById(`node-${agent}`);
+  const dot  = document.getElementById(`dot-${agent}`);
+  const sl   = document.getElementById(`status-label-${agent}`);
+  const rdot = document.getElementById(`row-dot-${agent}`);
+  if (!node) return;
+  node.classList.remove('running','done','error');
+  if (dot) dot.className = 'status-dot';
+  const state = status === 'started' ? 'running' : status;
+  const map = {
+    running: ['running','dot-running','RUNNING'],
+    done:    ['done',   'dot-done',   'DONE'],
+    error:   ['error',  'dot-error',  'ERROR'],
+    skipped: [null,     'dot-skipped','SKIPPED'],
+  };
+  const [cls, dotCls, lbl] = map[state] || [null,'','IDLE'];
+  if (cls) node.classList.add(cls);
+  if (dotCls && dot) dot.classList.add(dotCls);
+  if (rdot) rdot.className = `status-dot ${dotCls}`;
+  if (sl) sl.textContent = lbl;
+}
+
+function updateProgress(agent, event) {
+  const wrap = document.getElementById(`node-prog-${agent}`);
+  const fill = document.getElementById(`node-fill-${agent}`);
+  const text = document.getElementById(`node-prog-text-${agent}`);
+  if (!wrap || !event.progress || event.progress.length < 2) return;
+  const [cur, tot] = event.progress;
+  wrap.style.display = 'block';
+  if (fill) fill.style.width = (tot > 0 ? Math.min(100, cur/tot*100) : 0) + '%';
+  if (text) text.textContent = `${cur.toLocaleString()} / ${tot.toLocaleString()}`;
+}
+
+function disableBtn(agent, disabled) {
+  const btn = document.getElementById(`btn-${agent}`);
+  if (btn) btn.disabled = disabled;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SSE event handling ──────────────────────────────────────────────────────
+function handleEvent(event) {
+  const agent = event.agent;
+  if (!agent || agent === 'system') return;
+  updateNode(agent, event.status);
+  updateProgress(agent, event);
+  appendLog(event);
+  const msgEl = document.getElementById(`row-msg-${agent}`);
+  if (msgEl) msgEl.textContent = (event.message||'').substring(0,55);
+  if (event.status==='started'||event.status==='running') disableBtn(agent,true);
+  if (event.status==='done'||event.status==='error') disableBtn(agent,false);
+  const allDone = Object.keys(AGENT_ARM).every(a => {
+    const d = document.getElementById(`row-dot-${a}`);
+    return d && d.classList.contains('dot-done');
+  });
+  if (allDone) document.getElementById('summary-zone').style.removeProperty('display');
+}
+
+const statusEl = document.getElementById('connection-status');
+const es = new EventSource('/activity/stream/');
+es.onopen  = () => { statusEl.textContent='● LIVE'; statusEl.className='live'; };
+es.onerror = () => { statusEl.textContent='◌ RECONNECTING'; statusEl.className='warn'; };
+es.onmessage = (e) => {
+  let event;
+  try { event = JSON.parse(e.data); } catch { return; }
+  handleEvent(event);
+};
+
+// ── Polling fallback ─────────────────────────────────────────────────────────
+// Every 3 seconds, fetch the latest agent status from the server.
+// This is a safety net: if the SSE connection drops and the browser misses the
+// final done event, the poll catches it within 3 seconds.
+// It only updates agents whose dot is currently showing RUNNING — it never
+// overwrites a DONE state with stale data.
+let _lastPollEids = {};  // event_id seen per agent — skip if unchanged
+
+function pollStatus() {
+  fetch('/activity/status/')
+    .then(r => r.json())
+    .then(data => {
+      const agents = data.agents || {};
+      for (const [agent, info] of Object.entries(agents)) {
+        // Skip if we've already processed this event id
+        if (_lastPollEids[agent] === info.event_id) continue;
+        // Only apply if the node is currently RUNNING (dot has dot-running class)
+        // This prevents the poll from overwriting a DONE state after a re-run.
+        const rdot = document.getElementById(`row-dot-${agent}`);
+        const isRunning = rdot && rdot.classList.contains('dot-running');
+        const isIdle = rdot && !rdot.classList.contains('dot-done');
+        if ((isRunning || isIdle) && (info.status === 'done' || info.status === 'error')) {
+          // We missed a terminal event — apply it now
+          updateNode(agent, info.status);
+          const msgEl = document.getElementById(`row-msg-${agent}`);
+          if (msgEl) msgEl.textContent = (info.message||'').substring(0,55);
+          disableBtn(agent, false);
+          appendLog({agent, status:info.status, message:'[recovered via poll] ' + (info.message||''),
+                     level: info.status === 'error' ? 'error' : 'info',
+                     timestamp: new Date().toISOString()});
+        }
+        _lastPollEids[agent] = info.event_id;
+      }
+    })
+    .catch(() => {});  // silently ignore poll errors
+}
+
+setInterval(pollStatus, 3000);
+
+// ── Run commands ─────────────────────────────────────────────────────────────
+
+// Collect all data-param controls from within a given row element.
+// select/input -> use .value (skip empty strings)
+// .toggle-param buttons -> use .dataset.value (skip if falsy)
+function getRowParams(cmd) {
+  const row = document.getElementById(`row-${cmd}`);
+  if (!row) return {};
+  const params = {};
+  row.querySelectorAll('[data-param]').forEach(el => {
+    const key = el.dataset.param;
+    let val;
+    if (el.classList.contains('toggle-param')) {
+      val = el.dataset.value || '';
+    } else {
+      val = el.value || '';
+    }
+    if (val !== '') params[key] = val;
+  });
+  return params;
+}
+
+function runCommand(cmd) {
+  const params = getRowParams(cmd);
+
+  // Guard: --reset is destructive — require explicit confirmation
+  if (params.reset === '1') {
+    const warnings = {
+      download_pdfs:    'Re-downloading will overwrite existing PDF files on disk.',
+      classify_figures: 'Re-classifying will re-run the IMAGE LLM on every figure and overwrite existing classifications. This consumes significant API quota.',
+    };
+    const msg = warnings[cmd] || 'This will overwrite existing data.';
+    if (!confirm(`⚠ RESET is active for ${cmd}\n\n${msg}\n\nProceed?`)) return;
+  }
+
+  disableBtn(cmd, true);
+  const body = new URLSearchParams({csrfmiddlewaretoken: getCsrf(), ...params});
+  fetch(`/run/${cmd}/`, {method:'POST', body, headers:{'X-CSRFToken':getCsrf()}})
+    .then(r=>r.json())
+    .then(data => {
+      if (data.error) {
+        appendLog({agent:cmd,status:'error',message:data.error,level:'error',timestamp:new Date().toISOString()});
+        disableBtn(cmd,false);
+      }
+    });
+}
+
+function runDryRun(cmd) {
+  const dryBtn = document.getElementById(`btn-${cmd}-dry`);
+  if (dryBtn) dryBtn.disabled = true;
+  const body = new URLSearchParams({csrfmiddlewaretoken: getCsrf(), dry_run:'1', ...getRowParams(cmd)});
+  fetch(`/run/${cmd}/`, {method:'POST', body, headers:{'X-CSRFToken':getCsrf()}})
+    .then(r=>r.json())
+    .then(data => {
+      if (data.error) {
+        appendLog({agent:cmd,status:'error',message:data.error,level:'error',timestamp:new Date().toISOString()});
+      }
+      if (dryBtn) dryBtn.disabled = false;
+    });
+}
+
+// Toggle a boolean param button between off (default) and active (amber)
+function toggleParam(btn) {
+  const active = btn.dataset.value === '1';
+  btn.dataset.value = active ? '' : '1';
+  btn.classList.toggle('active', !active);
+}
+
+function getCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+</script>
+{% endblock %}
