@@ -1,8 +1,4 @@
-Here’s a concise, clean README tailored to your repo and aligned with the paper:
-
----
-
-# PaperToPractice
+# Paper To Practice
 
 **From Paper to Practice: Tracing How Academic Visualization Designs Evolve in Public Repositories**
 IEEE VIS 2026 (Full Paper Submission)
