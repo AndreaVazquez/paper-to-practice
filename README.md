@@ -55,6 +55,7 @@ The system builds a **progressive curation pipeline** that:
 .
 ├── code/                 # Code repository for the Django app
 ├── docs/                 # Technical pipeline documentation (01–12)
+├── example_narratives/   # 10 illustrative narratives
 ├── validation/           # Evaluation scripts and annotation datasets
 │   ├── p2p_annotations_*.json
 │   ├── p2p_chart_trace_validation.json
