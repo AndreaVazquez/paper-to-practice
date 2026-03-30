@@ -53,14 +53,15 @@ The system builds a **progressive curation pipeline** that:
 
 ```
 .
-├── code/                 # Code repository for the Django app
-├── docs/                 # Technical pipeline documentation (01–12)
-├── example_narratives/   # 10 illustrative narratives
-├── validation/           # Evaluation scripts and annotation datasets
+├── code/                   # Code repository for the Django app
+├── docs/                   # Technical pipeline documentation (01–12)
+├── example_narratives/     # 10 illustrative narratives
+├── validation/             # Evaluation scripts and annotation datasets
 │   ├── p2p_annotations_*.json
 │   ├── p2p_chart_trace_validation.json
 │   └── run_validations.py
-└── db.sqlite3            # Local database (corpus + traces)
+├── PaperToPractice_demo.mp4 # Video demonstration of the platform
+└── db.sqlite3               # Local database (corpus + traces)
 ```
 
 ---
